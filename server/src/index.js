@@ -5,7 +5,7 @@ import { createApp } from './app.js';
 async function main() {
   await connectDB(env.MONGODB_URI);
   const server = createApp().listen(env.PORT, () => {
-    console.log(`✓ LifeOS API listening on http://localhost:${env.PORT} (${env.NODE_ENV})`);
+    console.log(`✓ LifeNexus API listening on http://localhost:${env.PORT} (${env.NODE_ENV})`);
   });
 
   const shutdown = (signal) => {

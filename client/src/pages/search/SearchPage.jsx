@@ -41,7 +41,7 @@ export default function SearchPage() {
 
   return (
     <div className="page" style={{ maxWidth: 900 }}>
-      <PageHeader title="Search" subtitle="Everything in LifeOS — tasks, calendar, goals, projects, notes, journal, documents, finance, focus and health." />
+      <PageHeader title="Search" subtitle="Everything in LifeNexus — tasks, calendar, goals, projects, notes, journal, documents, finance, focus and health." />
       <div className="input-group" style={{ marginBottom: 12 }}>
         <Search aria-hidden="true" />
         <Input value={value} onChange={(e) => setValue(e.target.value)} placeholder="Search everything…" aria-label="Search everything" autoFocus style={{ height: 44, fontSize: 'var(--text-md)' }} />

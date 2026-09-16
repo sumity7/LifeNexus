@@ -39,7 +39,7 @@ export default function Register() {
   const strength = [values.password.length >= 8, /[A-Za-z]/.test(values.password) && /\d/.test(values.password), values.password.length >= 12 || /[^A-Za-z0-9]/.test(values.password)].filter(Boolean).length;
 
   return (
-    <AuthLayout title="Create your LifeOS" subtitle="Set up your personal operating system in under a minute.">
+    <AuthLayout title="Create your LifeNexus" subtitle="Set up your personal operating system in under a minute.">
       <form className="form" onSubmit={onSubmit} noValidate>
         <FormError error={form.formError} />
         <Field label="Name" error={errors.name}>

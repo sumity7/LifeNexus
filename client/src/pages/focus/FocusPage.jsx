@@ -165,8 +165,8 @@ function ActiveSession({ session }) {
   const paused = session.status === 'paused';
 
   useEffect(() => {
-    document.title = `${mmss(clock.remaining)} · Focus · LifeOS`;
-    return () => { document.title = 'LifeOS'; };
+    document.title = `${mmss(clock.remaining)} · Focus · LifeNexus`;
+    return () => { document.title = 'LifeNexus'; };
   }, [clock.remaining]);
 
   useEffect(() => {

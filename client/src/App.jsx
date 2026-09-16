@@ -35,7 +35,7 @@ const NotFound = lazy(() => import('./pages/NotFoundPage'));
 function FullscreenLoader() {
   return (
     <div className="fullscreen-center">
-      <Spinner size="lg" label="Loading LifeOS" />
+      <Spinner size="lg" label="Loading LifeNexus" />
     </div>
   );
 }

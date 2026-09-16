@@ -143,7 +143,7 @@ export default function AIPage() {
         <div className="ai-thread">
           {status.isPending ? <Skeleton height={80} /> : !configured ? (
             <Card>
-              <EmptyState icon={Sparkles} title="AI isn't configured on this server yet" description="Add a provider key on the server to enable the assistant. Everything else in LifeOS works without it." />
+              <EmptyState icon={Sparkles} title="AI isn't configured on this server yet" description="Add a provider key on the server to enable the assistant. Everything else in LifeNexus works without it." />
               <div className="ai-setup">
                 In <code>server/.env</code> set <code>AI_PROVIDER=anthropic</code> with <code>ANTHROPIC_API_KEY=…</code>, or <code>AI_PROVIDER=gemini</code> with <code>GEMINI_API_KEY=…</code> (free tier, no card required — get one at aistudio.google.com), then restart the API. Keys never leave the server.
               </div>

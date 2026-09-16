@@ -115,8 +115,8 @@ function Sidebar({ collapsed, onToggleCollapse, open, onClose, onSearch }) {
   return (
     <aside className={clsx('sidebar', open && 'is-open')} aria-label="Main navigation">
       <div className="sidebar__brand">
-        <span className="brand-mark" aria-hidden="true"><Zap /></span>
-        <span className="brand-name">LifeOS</span>
+        <span className="brand-mark" aria-hidden="true"><img src="/brand/logo-symbol.png" alt="" /></span>
+        <span className="brand-name">LifeNexus</span>
         <IconButton
           className="sidebar__collapse"
           icon={collapsed ? PanelLeftOpen : PanelLeftClose}

@@ -23,7 +23,7 @@ export class ErrorBoundary extends Component {
           <div className="state__icon" aria-hidden="true"><AlertTriangle /></div>
           <p className="state__title">{chunkError ? 'A new version is available' : 'This page ran into a problem'}</p>
           <p className="state__description">
-            {chunkError ? 'Reload to get the latest version of LifeOS.' : 'Your data is safe. Try again, or head back to the dashboard.'}
+            {chunkError ? 'Reload to get the latest version of LifeNexus.' : 'Your data is safe. Try again, or head back to the dashboard.'}
           </p>
           <div className="state__action">
             <Button icon={RotateCw} onClick={() => (chunkError ? window.location.reload() : this.setState({ error: null }))}>

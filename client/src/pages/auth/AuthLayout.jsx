@@ -1,13 +1,13 @@
-import { CheckCircle2, Flame, Target, Zap } from 'lucide-react';
+import { CheckCircle2, Flame, Target } from 'lucide-react';
 import { ProgressBar } from '../../components/ui';
 
 export function AuthLayout({ title, subtitle, children }) {
   return (
     <div className="auth">
       <div className="auth__panel">
-        <div className="row" style={{ gap: 10 }}>
-          <span className="brand-mark" aria-hidden="true"><Zap /></span>
-          <span className="brand-name">LifeOS</span>
+        <div className="row" style={{ gap: 12 }}>
+          <span className="brand-mark brand-mark--lg" aria-hidden="true"><img src="/brand/logo-symbol.png" alt="" /></span>
+          <span className="brand-name brand-name--lg">LifeNexus</span>
         </div>
         <main className="auth__form-wrap">
           <h1 className="auth__title">{title}</h1>

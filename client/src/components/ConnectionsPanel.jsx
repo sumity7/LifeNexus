@@ -79,7 +79,7 @@ function LinkPicker({ type, id, onClose }) {
   };
 
   return (
-    <Modal open onClose={onClose} title="Link an item" description="Search anything in LifeOS and connect it here." size="sm">
+    <Modal open onClose={onClose} title="Link an item" description="Search anything in LifeNexus and connect it here." size="sm">
       <div className="stack">
         <div className="row">
           <div className="input-group grow">

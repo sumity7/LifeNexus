@@ -428,7 +428,7 @@ function RecurringTab({ money }) {
   return (
     <Card title="Recurring transactions" icon={Repeat} subtitle="Salary, rent, EMIs and transfers are posted automatically when due" flush actions={<Button size="sm" icon={Plus} onClick={() => openEditor('recurring')}>Add rule</Button>}>
       {rules.isPending ? <SkeletonList rows={4} /> : rules.isError ? <ErrorState compact error={rules.error} onRetry={() => rules.refetch()} /> : !list.length ? (
-        <EmptyState compact icon={Repeat} title="No recurring transactions" description="Add your salary, rent or EMI once and let LifeOS post them on schedule." action={<Button size="sm" icon={Plus} onClick={() => openEditor('recurring')}>Add rule</Button>} />
+        <EmptyState compact icon={Repeat} title="No recurring transactions" description="Add your salary, rent or EMI once and let LifeNexus post them on schedule." action={<Button size="sm" icon={Plus} onClick={() => openEditor('recurring')}>Add rule</Button>} />
       ) : list.map((r) => (
         <button key={r._id} type="button" className="fin-row" onClick={() => openEditor('recurring', { item: r })}>
           <span className="icon-tile icon-tile--sm" aria-hidden="true"><Repeat /></span>

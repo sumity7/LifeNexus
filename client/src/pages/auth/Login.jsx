@@ -63,7 +63,7 @@ export default function Login() {
       )}
 
       <p className="auth__switch">
-        New to LifeOS? <Link to="/register">Create an account</Link>
+        New to LifeNexus? <Link to="/register">Create an account</Link>
       </p>
     </AuthLayout>
   );
