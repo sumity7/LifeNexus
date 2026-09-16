@@ -1,0 +1,37 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# Lets Render auto-configure the service from this repo instead of manual setup:
+# Dashboard → New + → Blueprint → select this repo → fill in MONGODB_URI → Apply.
+services:
+  - type: web
+    name: lifenexus
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: "1"
+      - key: STORAGE_PROVIDER
+        value: local
+      # Render generates a strong random value for this automatically — nothing to paste.
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      # Set this to your service's actual URL AFTER first deploy, e.g.
+      # https://lifenexus.onrender.com (with the https:// scheme — Render assigns
+      # the exact subdomain on creation, so it can't be known before that).
+      - key: CLIENT_ORIGIN
+        sync: false
+      # The only value that genuinely requires your input — pasted once when applying
+      # the blueprint, never committed to the repo.
+      - key: MONGODB_URI
+        sync: false
+      # Optional — launches with AI/email off by default; flip AI_PROVIDER to "gemini" and
+      # paste GEMINI_API_KEY in the dashboard any time (Settings → Environment), no redeploy
+      # from scratch needed.
+      - key: AI_PROVIDER
+        value: none
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: EMAIL_PROVIDER
+        value: none
