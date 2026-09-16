@@ -1,0 +1,17 @@
+node_modules
+**/node_modules
+client/dist
+server/uploads
+server/uploads-test
+*.log
+npm-debug.log*
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+.vscode
+.claude
+coverage
+docs
+README.md

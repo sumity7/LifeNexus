@@ -1,0 +1,39 @@
+# Self-contained local "production-like" run: `docker compose up --build`.
+# Secrets (JWT_ACCESS_SECRET, AI provider keys, S3 credentials) are read from
+# server/.env via env_file — copy server/.env.example first and fill it in.
+# MONGODB_URI/PORT/NODE_ENV are fixed here to the values that make sense
+# inside the compose network, overriding whatever server/.env has for them.
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    env_file:
+      - server/.env
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGODB_URI: mongodb://mongo:27017/lifeos
+    ports:
+      - '5000:5000'
+    volumes:
+      # Only matters with STORAGE_PROVIDER=local. Safe (unused) with STORAGE_PROVIDER=s3.
+      - uploads_data:/app/uploads
+
+volumes:
+  mongo_data:
+  uploads_data:

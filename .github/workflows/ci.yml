@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run server tests
+        working-directory: server
+        env:
+          JWT_ACCESS_SECRET: ci-test-access-secret-at-least-32-characters-long
+          MONGODB_URI: mongodb://127.0.0.1:27017/lifeos_ci
+        run: npm test
+
+      - name: Build client
+        run: npm run build
+
+      - name: Grep client bundle for accidentally-leaked secrets
+        run: |
+          if grep -rE "sk-ant-|AIzaSy|AKIA[0-9A-Z]{16}" client/dist/assets/*.js; then
+            echo "::error::A secret-shaped string was found in the client bundle."
+            exit 1
+          fi
