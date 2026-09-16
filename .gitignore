@@ -10,3 +10,4 @@ coverage/
 .DS_Store
 .vscode/*
 !.vscode/extensions.json
+*claude-notify-signals*
