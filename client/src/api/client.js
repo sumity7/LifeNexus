@@ -1,4 +1,18 @@
-const BASE = '/api';
+// In dev, requests stay relative — Vite's proxy forwards /api to localhost:5000 same-origin,
+// which is what lets the httpOnly refresh cookie "just work" (see vite.config.js).
+// In production the frontend (Vercel) and API (Render) are different origins, so VITE_API_URL
+// must point at the API's own origin — no trailing slash, no /api suffix (that's appended here,
+// once, so it's never duplicated and never needs to be remembered when setting the var).
+const API_ORIGIN = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '');
+const BASE = `${API_ORIGIN}/api`;
+
+/**
+ * Resolves a path the server already handed back as a full relative URL — e.g. a document's
+ * `fileUrl: "/api/documents/<id>/file?token=..."` — against the API's origin instead of the
+ * current page's origin. Without this, such a request would silently hit the frontend's own
+ * domain in a split deployment (404) rather than the API.
+ */
+const resolveUrl = (url) => (/^https?:\/\//i.test(url) ? url : API_ORIGIN + url);
 
 let accessToken = null;
 let refreshPromise = null;
@@ -154,10 +168,11 @@ export async function uploadForm(path, formData, { retry = true } = {}) {
 
 /** Fetches a protected file (signed URL + bearer token) and returns a Response. */
 export async function fetchFile(url) {
-  let res = await fetch(url, { credentials: 'include', headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {} });
+  const resolved = resolveUrl(url);
+  let res = await fetch(resolved, { credentials: 'include', headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {} });
   if (res.status === 401) {
     await refreshSession();
-    res = await fetch(url, { credentials: 'include', headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {} });
+    res = await fetch(resolved, { credentials: 'include', headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {} });
   }
   if (!res.ok) throw new ApiError(res.status, FALLBACK_MESSAGES[res.status] ?? 'Could not load file');
   return res;
