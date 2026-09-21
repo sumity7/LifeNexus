@@ -33,8 +33,23 @@ export function errorHandler(err, req, res, _next) {
     message = 'Request body is too large';
   }
 
-  if (status >= 500 && !(err instanceof AppError) && !env.isTest) {
-    console.error(`[${req.method} ${req.originalUrl}]`, err);
+  if (status >= 500 && !env.isTest) {
+    console.error(`[${req.method} ${req.originalUrl}]`, {
+      name: err?.name,
+      code: err?.code,
+      status: err?.status,
+      message: err?.message,
+      details: err?.details,
+      cause: err?.cause
+        ? {
+            name: err.cause?.name,
+            code: err.cause?.code,
+            status: err.cause?.status,
+            message: err.cause?.message,
+          }
+        : undefined,
+      stack: err?.stack,
+    });
   }
 
   res.status(status).json({ error: { message, ...(code && { code }), ...(details && { details }) } });
