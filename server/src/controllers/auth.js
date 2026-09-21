@@ -20,10 +20,14 @@ const ROTATION_GRACE_MS = 30_000;
 // Used to keep login timing similar whether or not the email exists.
 const TIMING_HASH = bcrypt.hashSync('lifeos-timing-equalizer', 10);
 
+// In production the frontend (Vercel) and backend (Render) are different sites, so the refresh
+// cookie must be SameSite=None (which browsers only honor when Secure is also set) or the browser
+// will never send it back on cross-site requests. Locally, frontend and backend share a site
+// (same registrable domain, different ports) so the stricter Lax/Secure-free defaults still apply.
 const cookieOptions = () => ({
   httpOnly: true,
   secure: env.isProd,
-  sameSite: 'strict',
+  sameSite: env.isProd ? 'none' : 'strict',
   path: '/api/auth',
 });
 
@@ -72,18 +76,36 @@ export async function login(req, res) {
   res.json({ data: await startSession(req, res, user) });
 }
 
+function logRefreshFailure(reason, req) {
+  if (env.isTest) return;
+  console.warn(`[auth/refresh] ${reason}`, {
+    hasCookieHeader: Boolean(req.headers.cookie),
+    origin: req.headers.origin || null,
+  });
+}
+
 export async function refresh(req, res) {
   const token = req.cookies?.[REFRESH_COOKIE];
-  if (!token) throw new AppError(401, 'No active session', { code: 'NO_SESSION' });
+  if (!token) {
+    logRefreshFailure('missing refresh cookie', req);
+    throw new AppError(401, 'No active session', { code: 'NO_SESSION' });
+  }
 
   const session = await Session.findOne({ tokenHash: hashToken(token) });
-  if (!session || session.expiresAt < new Date()) {
+  if (!session) {
+    logRefreshFailure('refresh token not found in database', req);
+    clearRefreshCookie(res);
+    throw new AppError(401, 'Your session has expired', { code: 'NO_SESSION' });
+  }
+  if (session.expiresAt < new Date()) {
+    logRefreshFailure('refresh token expired', req);
     clearRefreshCookie(res);
     throw new AppError(401, 'Your session has expired', { code: 'NO_SESSION' });
   }
 
   const user = await User.findById(session.user);
   if (!user) {
+    logRefreshFailure('user for session no longer exists', req);
     await Session.deleteMany({ user: session.user });
     clearRefreshCookie(res);
     throw new AppError(401, 'Account no longer exists', { code: 'NO_SESSION' });
@@ -95,6 +117,7 @@ export async function refresh(req, res) {
       return res.json({ data: { user, accessToken: signAccessToken(user._id) } });
     }
     // An old token was replayed — treat as theft and end every session for this user.
+    logRefreshFailure('rotated refresh token replayed outside grace window', req);
     await Session.deleteMany({ user: user._id });
     clearRefreshCookie(res);
     throw new AppError(401, 'Your session has expired', { code: 'NO_SESSION' });
