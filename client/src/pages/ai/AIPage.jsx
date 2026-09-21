@@ -63,7 +63,10 @@ export default function AIPage() {
 
   useEffect(() => setLocalMessages([]), [conversationId]);
   const messages = useMemo(() => [...(conversation.data?.messages ?? []), ...localMessages], [conversation.data, localMessages]);
-  useEffect(() => bottomRef.current?.scrollIntoView({ block: 'end' }), [messages.length, send.isPending]);
+  // Block body (not an implicit return): scrollIntoView() resolves to a Promise in current
+  // Chrome, and an implicitly-returned Promise gets treated by React as the effect's cleanup —
+  // which then throws ("X is not a function") the next time the effect tears down.
+  useEffect(() => { bottomRef.current?.scrollIntoView({ block: 'end' }); }, [messages.length, send.isPending]);
 
   const configured = status.data?.configured;
   const enabled = status.data?.enabled !== false;
