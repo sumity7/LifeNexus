@@ -29,6 +29,9 @@ const FALLBACK_MESSAGES = {
   413: 'That is too large to save.',
   429: 'Too many requests — please wait a moment.',
   500: 'Something went wrong on our side. Please try again.',
+  502: 'The server is temporarily unavailable. Please try again shortly.',
+  503: 'The service is temporarily unavailable. Please try again shortly.',
+  504: 'The request took too long. Please try again.',
 };
 
 export class ApiError extends Error {

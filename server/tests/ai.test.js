@@ -217,6 +217,51 @@ describe('GeminiProvider (unit, mocked fetch)', () => {
     assert.equal(mapGeminiError({ isTimeout: true }).code, 'AI_TIMEOUT');
     assert.equal(mapGeminiError({ status: 503 }).code, 'AI_UNAVAILABLE');
   });
+
+  it('retries a transient 503 and succeeds once the service recovers', async () => {
+    let calls = 0;
+    const fetchImpl = async () => {
+      calls++;
+      if (calls < 3) return jsonResponse({ error: { message: 'overloaded' } }, false, 503);
+      return jsonResponse({ candidates: [{ content: { parts: [{ text: 'recovered' }] }, finishReason: 'STOP' }] });
+    };
+    const provider = new GeminiProvider({ apiKey: 'k', model: 'm', fetchImpl, retryBaseMs: 5 });
+    const result = await provider.generate({ system: [], messages: [{ role: 'user', content: 'hi' }] });
+    assert.equal(result.text, 'recovered');
+    assert.equal(calls, 3, 'retried twice before the service recovered on the third attempt');
+  });
+
+  it('gives up after bounded retries on a persistent 503, still surfacing a clean AI_UNAVAILABLE', async () => {
+    let calls = 0;
+    const fetchImpl = async () => { calls++; return jsonResponse({ error: { message: 'overloaded' } }, false, 503); };
+    const provider = new GeminiProvider({ apiKey: 'k', model: 'm', fetchImpl, retryBaseMs: 5 });
+    await assert.rejects(
+      () => provider.generate({ system: [], messages: [{ role: 'user', content: 'hi' }] }),
+      (err) => err.code === 'AI_UNAVAILABLE',
+    );
+    assert.equal(calls, 3, 'bounded to 3 total attempts (1 + 2 retries), never infinite');
+  });
+
+  it('retries a transient 429 rate limit the same way', async () => {
+    let calls = 0;
+    const fetchImpl = async () => {
+      calls++;
+      if (calls < 2) return jsonResponse({ error: { message: 'rate limited' } }, false, 429);
+      return jsonResponse({ candidates: [{ content: { parts: [{ text: 'ok' }] }, finishReason: 'STOP' }] });
+    };
+    const provider = new GeminiProvider({ apiKey: 'k', model: 'm', fetchImpl, retryBaseMs: 5 });
+    const result = await provider.generate({ system: [], messages: [{ role: 'user', content: 'hi' }] });
+    assert.equal(result.text, 'ok');
+    assert.equal(calls, 2);
+  });
+
+  it('never retries a non-transient 401/403/400 — fails on the first attempt', async () => {
+    let calls = 0;
+    const fetchImpl = async () => { calls++; return jsonResponse({ error: { message: 'bad key' } }, false, 401); };
+    const provider = new GeminiProvider({ apiKey: 'k', model: 'm', fetchImpl, retryBaseMs: 5 });
+    await assert.rejects(() => provider.generate({ system: [], messages: [{ role: 'user', content: 'hi' }] }));
+    assert.equal(calls, 1, 'auth failures are not retried');
+  });
 });
 
 /* ───────────────────────── Action validation (unit) ───────────────────────── */
