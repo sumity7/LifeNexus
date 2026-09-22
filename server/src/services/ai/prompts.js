@@ -31,6 +31,20 @@ export const MODE_HINTS = {
   act: 'Mode: ACT — propose changes to EXISTING items (update_task, complete_task, update_goal, update_project, update_event, update_reminder) using ids from the context. If the item cannot be identified unambiguously, ask a clarifying question and propose nothing.',
 };
 
+/**
+ * Appended (on top of the normal mode hint, not instead of it) only when the
+ * message matches DAY_PLAN_INTENT — see context.js. Keeps the "plan my day"
+ * shape out of every other ask/create/recommend reply.
+ */
+export const DAY_PLAN_INSTRUCTIONS = `This is a day-planning request ("plan my day" or equivalent) — write a real plan, not just a priority list, using only the tasks/projects/calendar/goals/habits/routines/focus data given in the context.
+- Calendar events in the context are FIXED commitments. Never schedule a task on top of one — plan around the gaps between them.
+- Only give a block a clock time when the context actually supports it (an event's own time, a routine's time of day, or a time the user stated). If you can't tell what hours the user actually has free today, don't invent a fully-timed schedule — give ordered blocks (e.g. Morning / Midday / Afternoon / Evening) instead and say plainly that the times are estimates for the user to adjust, not fixed.
+- Priority order: overdue tasks, tasks due today, deadlines/goals at risk soon, fixed calendar commitments, today's routines/habits, then other open tasks by priority.
+- Build in short breaks and transition time between blocks — don't pack hours back to back.
+- Structure the reply with these sections, in this order, skipping any with nothing to say: a one-line "Today's overview", the block-by-block schedule, "Top 3 priorities", "Important deadlines/events", "If you have extra time" (lower-priority optional tasks).
+- Only name tasks, events, goals, habits, routines, deadlines or people that actually appear in the context. Never invent one.
+- You may propose create_event/update_task actions for specific blocks if that's genuinely useful, but the written plan must stand on its own either way — the user is asking to see a plan, not asking you to change their data, and nothing runs until they confirm an action.`;
+
 export const STRUCTURED_INSTRUCTIONS = `Respond with JSON: { "reply": markdown string, "actions": [{ "type", "summary", "payload" }] } where "payload" is the action's object encoded as a JSON string.
 The "reply" field is a full answer, not just a caption for the actions — for informational requests (explanations, roadmaps, timetables, code, study plans) put the complete content there in Markdown, whether or not any actions are proposed.
 Action types and payload fields (omit fields you don't set):

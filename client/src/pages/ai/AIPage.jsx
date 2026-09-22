@@ -62,7 +62,14 @@ export default function AIPage() {
   const textareaRef = useRef(null);
 
   useEffect(() => setLocalMessages([]), [conversationId]);
-  const messages = useMemo(() => [...(conversation.data?.messages ?? []), ...localMessages], [conversation.data, localMessages]);
+  // Defensive: conversation.data can refresh from other triggers (remount, window refocus) while
+  // a local message hasn't been cleared yet — drop any local entry the server copy already has,
+  // by _id, so the same message (e.g. a real, persisted assistant reply) never renders twice.
+  const messages = useMemo(() => {
+    const fromServer = conversation.data?.messages ?? [];
+    const serverIds = new Set(fromServer.map((m) => m._id));
+    return [...fromServer, ...localMessages.filter((m) => !serverIds.has(m._id))];
+  }, [conversation.data, localMessages]);
   // Block body (not an implicit return): scrollIntoView() resolves to a Promise in current
   // Chrome, and an implicitly-returned Promise gets treated by React as the effect's cleanup —
   // which then throws ("X is not a function") the next time the effect tears down.
@@ -80,12 +87,16 @@ export default function AIPage() {
     setLocalMessages((m) => [...m, optimistic]);
     try {
       const result = await send.mutateAsync({ message, mode: mode || undefined, conversationId: conversationId ?? undefined, context: anchor ?? undefined });
-      if (result.conversation && result.conversation._id !== conversationId) {
+      if (result.conversation._id !== conversationId) {
+        // First message in a brand-new conversation: switching the URL mounts useConversation
+        // on a fresh query key, which fetches both messages straight away — no cache to go stale.
         setParams((p) => { const n = new URLSearchParams(p); n.set('c', result.conversation._id); n.delete('prompt'); return n; }, { replace: true });
-      } else if (!result.conversation) {
-        setLocalMessages((m) => [...m, result.message]);
       } else {
-        setLocalMessages([]);
+        // Continuing an existing conversation: append the reply we already have instead of
+        // waiting on a background refetch of useConversation (which only re-runs on window
+        // refocus) — otherwise the reply, and even the user's own message, can sit invisible
+        // for minutes after a slow response until the tab happens to regain focus.
+        setLocalMessages((m) => [...m, result.message]);
       }
     } catch (err) {
       setLocalMessages((m) => m.filter((x) => x._id !== optimistic._id));

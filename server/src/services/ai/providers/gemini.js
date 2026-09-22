@@ -6,7 +6,12 @@ const BLOCKED_REASONS = new Set(['SAFETY', 'RECITATION', 'BLOCKLIST', 'PROHIBITE
 
 // Anthropic's SDK retries transient failures internally (maxRetries); the Gemini
 // path is a plain fetch with none of that, so it's bolted on here. Only conditions
-// that are genuinely transient are retried — never 400/401/403, never safety blocks.
+// that are genuinely transient are retried — never 400/401/403, never safety blocks,
+// and never a timeout: a timeout already means we waited the full budget once with
+// no answer, so retrying it just replays that same wait (up to MAX_RETRIES times) —
+// it doesn't recover anything a plain single wait wouldn't have. A fast HTTP 429/5xx,
+// in contrast, is the server telling us "try later" within milliseconds, so retrying
+// that is genuinely cheap.
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 const MAX_RETRIES = 2; // up to 3 attempts total
 const RETRY_BASE_MS = 400;
@@ -84,7 +89,7 @@ export class GeminiProvider {
         return data;
       } catch (rawErr) {
         const err = rawErr?.name === 'AbortError' ? Object.assign(new Error('Gemini request timed out'), { isTimeout: true }) : rawErr;
-        const retryable = err.isTimeout || err.status === undefined || RETRYABLE_STATUS.has(err.status);
+        const retryable = !err.isTimeout && (err.status === undefined || RETRYABLE_STATUS.has(err.status));
         if (!retryable || attempt >= MAX_RETRIES) throw err;
         if (process.env.NODE_ENV !== 'test') {
           console.warn(`[ai] Gemini ${path} attempt ${attempt + 1} failed (${err.status ?? (err.isTimeout ? 'timeout' : 'network')}), retrying…`);

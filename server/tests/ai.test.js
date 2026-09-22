@@ -262,6 +262,34 @@ describe('GeminiProvider (unit, mocked fetch)', () => {
     await assert.rejects(() => provider.generate({ system: [], messages: [{ role: 'user', content: 'hi' }] }));
     assert.equal(calls, 1, 'auth failures are not retried');
   });
+
+  it('never retries a timeout — a hung request fails after exactly one timeoutMs wait, not a multiple of it', async () => {
+    // Regression test for a production incident: a hung/slow Gemini call was being retried up to
+    // MAX_RETRIES times, each with its own full timeoutMs budget, turning one 90s hang into up to
+    // ~270s of total wait. A real fetch() rejects with an AbortError once its signal fires — this
+    // mock does the same instead of hanging forever, modeling "Gemini never responds".
+    let calls = 0;
+    const fetchImpl = (url, opts) => {
+      calls++;
+      return new Promise((_resolve, reject) => {
+        opts.signal.addEventListener('abort', () => {
+          const err = new Error('The operation was aborted');
+          err.name = 'AbortError';
+          reject(err);
+        });
+      });
+    };
+    const timeoutMs = 200;
+    const provider = new GeminiProvider({ apiKey: 'k', model: 'm', fetchImpl, timeoutMs, retryBaseMs: 5 });
+    const t0 = Date.now();
+    await assert.rejects(
+      () => provider.generate({ system: [], messages: [{ role: 'user', content: 'hi' }] }),
+      (err) => err.code === 'AI_TIMEOUT',
+    );
+    const elapsed = Date.now() - t0;
+    assert.equal(calls, 1, 'a timeout must not trigger a retry — it already consumed the full wait once');
+    assert.ok(elapsed < timeoutMs * 2, `expected roughly one timeoutMs (${timeoutMs}ms) wait, got ${elapsed}ms — looks like the timeout is being retried again`);
+  });
 });
 
 /* ───────────────────────── Action validation (unit) ───────────────────────── */
@@ -462,6 +490,113 @@ describe('AI chat, modes, confirmation and permissions', () => {
       assert.match(res.body.data.message.content, /Settings/i, 'explains where to turn access back on');
     });
   }
+});
+
+/* ───────────────────────── "Plan my day" — real day-planner shape, not just a priority list ───────────────────────── */
+
+describe('day planning ("plan my day")', () => {
+  let setAIProvider;
+  const calls = [];
+
+  before(async () => { ({ setAIProvider } = await import('../src/services/ai/providers/index.js')); });
+
+  beforeEach(() => {
+    calls.length = 0;
+    setAIProvider({
+      name: 'fake',
+      model: 'fake-1',
+      available: true,
+      async structured({ system, messages }) {
+        calls.push({ system, messages });
+        return { data: { reply: 'plan', actions: [] }, usage: { input: 1, output: 1 } };
+      },
+    });
+  });
+
+  const systemTextOf = (call) => call.system.map((b) => b.text).join('\n\n');
+  const DAY_PLAN_PHRASES = ['Plan my day', 'Plan my day today', 'What should I do today?', 'Create my schedule for today', 'How should I spend my day?'];
+  const NOT_DAY_PLAN_PHRASES = ['What are my tasks today?', 'Create a reminder for today at 5pm', 'Create a task for tomorrow to review my budget', 'Give me a 6 hour DSA timetable'];
+
+  for (const phrase of DAY_PLAN_PHRASES) {
+    it(`recognizes "${phrase}" as a day-planning request and adds the planner instructions`, async () => {
+      const u = await createUser(ctx.app);
+      await u.post('/api/ai/chat').send({ message: phrase, date: TODAY });
+      const text = systemTextOf(calls.at(-1));
+      assert.match(text, /This is a day-planning request/, `"${phrase}" should trigger the day-planner instructions`);
+      assert.match(text, /FIXED commitments/i);
+      assert.match(text, /Today's overview/);
+    });
+  }
+
+  for (const phrase of NOT_DAY_PLAN_PHRASES) {
+    it(`does NOT force the day-planner shape onto an unrelated request: "${phrase}"`, async () => {
+      const u = await createUser(ctx.app);
+      await u.post('/api/ai/chat').send({ message: phrase, date: TODAY });
+      const text = systemTextOf(calls.at(-1));
+      assert.doesNotMatch(text, /This is a day-planning request/, `"${phrase}" must not trigger the elaborate day-plan template`);
+    });
+  }
+
+  it('surfaces overdue tasks, clearly labeled, so the plan can prioritize them first', async () => {
+    const u = await createUser(ctx.app);
+    await u.post('/api/tasks').send({ title: 'File the tax return', dueDate: '2026-09-10', priority: 'high' });
+    await u.post('/api/ai/chat').send({ message: 'Plan my day', date: TODAY });
+    const text = systemTextOf(calls.at(-1));
+    assert.match(text, /File the tax return.*OVERDUE \(due 2026-09-10\)/);
+  });
+
+  it('surfaces tasks due today, distinct from overdue ones', async () => {
+    const u = await createUser(ctx.app);
+    await u.post('/api/tasks').send({ title: 'Submit expense report', dueDate: TODAY, priority: 'medium' });
+    await u.post('/api/ai/chat').send({ message: 'Plan my day', date: TODAY });
+    const text = systemTextOf(calls.at(-1));
+    assert.match(text, /Submit expense report.*due today/);
+  });
+
+  it('gives the model calendar events as fixed commitments, so a real time-blocked plan can avoid conflicts', async () => {
+    const u = await createUser(ctx.app);
+    await u.post('/api/events').send({ title: 'Dentist appointment', start: `${TODAY}T14:00:00Z`, end: `${TODAY}T15:00:00Z` });
+    await u.post('/api/ai/chat').send({ message: 'Plan my day', date: TODAY });
+    const text = systemTextOf(calls.at(-1));
+    assert.match(text, /Dentist appointment.*2026-09-15 14:00/, 'the fixed event and its real time are in context');
+    assert.match(text, /Never schedule a task on top of one/i, 'the model is told events are fixed commitments, not schedulable slots');
+  });
+
+  it('gives the model no fabricable time signal when nothing is scheduled, backed by the standing instruction not to invent one', async () => {
+    const u = await createUser(ctx.app);
+    // No events, no routines with a time of day — nothing in context to ground a real schedule against.
+    await u.post('/api/tasks').send({ title: 'Write documentation' });
+    await u.post('/api/ai/chat').send({ message: 'Plan my day', date: TODAY });
+    const text = systemTextOf(calls.at(-1));
+    assert.match(text, /No events\./, 'no calendar data exists in context to ground real clock times');
+    assert.match(text, /don't invent a fully-timed schedule/i, 'the standing instruction to avoid fabricating times is present');
+    assert.match(text, /estimates for the user to adjust, not fixed/i);
+  });
+
+  it('still produces the day-planner instructions and a clean empty state — never fabricated tasks or events — when the user has nothing scheduled', async () => {
+    const u = await createUser(ctx.app);
+    await u.post('/api/ai/chat').send({ message: 'Plan my day', date: TODAY });
+    const text = systemTextOf(calls.at(-1));
+    assert.match(text, /This is a day-planning request/);
+    assert.match(text, /No open tasks\./);
+    assert.match(text, /No events\./);
+    assert.match(text, /Only name tasks, events, goals, habits, routines, deadlines or people that actually appear in the context/i);
+  });
+
+  it('keeps actions gated behind confirmation even for a day-planning request that proposes calendar/task changes', async () => {
+    const u = await createUser(ctx.app);
+    const task = (await u.post('/api/tasks').send({ title: 'Draft the proposal' })).body.data;
+    setAIProvider({
+      name: 'fake', model: 'fake-1', available: true,
+      async structured({ system, messages }) {
+        calls.push({ system, messages });
+        return { data: { reply: 'Here is your plan', actions: [{ type: 'update_task', summary: 'Schedule it for this morning', payload: JSON.stringify({ id: task._id, dueDate: TODAY }) }] }, usage: {} };
+      },
+    });
+    const res = await u.post('/api/ai/chat').send({ message: 'Plan my day', date: TODAY });
+    assert.equal(res.body.data.message.actions[0].status, 'proposed');
+    assert.notEqual((await u.get(`/api/tasks/${task._id}`)).body.data.dueDate, TODAY, 'never mutated before the user confirms');
+  });
 });
 
 /* ───────────────────────── Prompt-injection resistance (unit, deterministic) ───────────────────────── */

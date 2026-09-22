@@ -47,6 +47,15 @@ const DAY_INTENT = /\b(what should i|focus on|prioriti[sz]e|plan (my|the) day|my
 const WEEK_INTENT = /\b(my week|this week|last week|weekly|week went|review)\b/i;
 const DAY_SCOPES = ['tasks', 'projects', 'goals', 'calendar', 'routines', 'habits', 'focus'];
 
+/**
+ * Narrower than DAY_INTENT (which only decides which data to fetch, and is
+ * deliberately over-inclusive — extra context never hurts). This decides whether
+ * the reply should take the full day-planner shape (time blocks, priorities,
+ * deadlines) rather than a plain answer — so it must NOT fire on things like
+ * "create a reminder for today" or "what are my tasks today".
+ */
+export const DAY_PLAN_INTENT = /\b(plan(?:ning)? (my|the|out) day|plan(?:ning)? out (my|the) day|plan(?:ning)? my whole day|plan(?:ning)? today|organi[sz]e my (whole )?day|organi[sz]e the day|structure my day|structure the day|schedule my (whole )?day|schedule the day|schedule out my day|create (my|a) (daily )?schedule|make (my|a) (daily )?schedule|build me a (daily )?schedule|give me a (daily )?schedule|what should i do today|how should i spend (my|the) day|today'?s (plan|schedule|agenda)|day plan|daily plan|daily schedule)\b/i;
+
 export function selectScopes(message, mode, anchor) {
   const explicit = AI_SCOPES.filter((s) => SCOPE_KEYWORDS[s].test(message));
   const wanted = new Set(explicit);

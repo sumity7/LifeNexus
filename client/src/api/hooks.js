@@ -361,6 +361,9 @@ export const useConversations = () => useQuery({ queryKey: ['ai', 'conversations
 export const useConversation = (id) =>
   useQuery({ queryKey: ['ai', 'conversation', id], queryFn: ({ signal }) => api.get(`/ai/conversations/${id}`, undefined, { signal }), enabled: !!id });
 export const useSendAIMessage = () =>
+  // Deliberately does NOT invalidate ['ai', 'conversation'] (the open thread): AIPage already
+  // applies the response to its own local state directly (see its submit()), so a background
+  // refetch here would race that local update and re-add the same message a second time.
   useApiMutation((body) => api.post('/ai/chat', { date: todayKey(), ...body }), { invalidate: [['ai', 'conversations']] });
 export const useDecideAIAction = () => useApiMutation((body) => api.post('/ai/actions', { date: todayKey(), ...body }), { invalidate: [['ai', 'conversation']] });
 export const useExecuteProposal = () => useApiMutation((body) => api.post('/ai/proposals/execute', body));
