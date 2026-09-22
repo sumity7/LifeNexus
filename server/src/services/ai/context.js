@@ -211,7 +211,7 @@ const neutralize = (s) => String(s).replace(/<\s*\/?\s*(user_data|facts)\b[^>]*>
 export const renderContext = (blocks) =>
   blocks.length
     ? blocks.map((b) => `<user_data module="${b.module}" title="${b.title}">\n${neutralize(b.text)}\n</user_data>`).join('\n\n')
-    : 'No data was retrieved for this request.';
+    : 'No LifeNexus data was retrieved for this request — either none was needed, or nothing matched. This is normal for general questions; answer them from your own knowledge as usual.';
 
 export const renderFacts = (facts) => `<facts>\n${neutralize(JSON.stringify(facts))}\n</facts>`;
 
