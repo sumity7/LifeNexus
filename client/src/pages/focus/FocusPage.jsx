@@ -212,6 +212,7 @@ function ActiveSession({ session }) {
 function SessionRow({ session }) {
   const remove = useDeleteFocus();
   const confirm = useConfirm();
+  const toast = useToast();
   const minutes = Math.round(session.focusedSeconds / 60);
   return (
     <div className="list-row">
@@ -221,7 +222,7 @@ function SessionRow({ session }) {
         <p className="text-xs muted">{relativeDay(session.date)} · {formatKey(session.date, 'MMM d')}{session.goal && ` · ${session.goal.title}`}{session.project && ` · ${session.project.title}`}</p>
       </div>
       <span className="text-sm weight-medium tabular">{formatDuration(minutes)}<span className="muted"> / {session.plannedMinutes}m</span></span>
-      <IconButton icon={Trash2} size="sm" label="Delete session" onClick={async () => (await confirm({ title: 'Delete this session?' })) && remove.mutate(session._id)} />
+      <IconButton icon={Trash2} size="sm" label="Delete session" onClick={async () => (await confirm({ title: 'Delete this session?' })) && remove.mutate(session._id, { onError: (err) => toast.apiError(err, "Couldn't delete session") })} />
     </div>
   );
 }

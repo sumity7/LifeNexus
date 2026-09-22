@@ -76,6 +76,7 @@ export function AuthProvider({ children }) {
       user,
       status,
       login: async (credentials) => startSession(await api.post('/auth/login', credentials)),
+      loginDemo: async () => startSession(await api.post('/auth/demo', {})),
       register: async (details) => startSession(await api.post('/auth/register', details)),
       logout: async () => {
         try {

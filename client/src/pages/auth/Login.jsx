@@ -5,22 +5,28 @@ import { AuthLayout } from './AuthLayout';
 import { Button, Field, FormError, Input } from '../../components/ui';
 import { useAuth } from '../../context/AuthContext';
 import { useFormState } from '../../hooks/useFormState';
-
-const DEMO = { email: 'demo@lifeos.app', password: 'Demo1234!' };
+import { useToast } from '../../context/ToastContext';
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, loginDemo } = useAuth();
+  const toast = useToast();
   const [submitting, setSubmitting] = useState(null);
+  const [demoUnavailable, setDemoUnavailable] = useState(false);
   const form = useFormState({ email: '', password: '' });
   const { values, errors } = form;
 
-  const signIn = async (credentials, mode) => {
+  const signIn = async (action, mode) => {
     setSubmitting(mode);
     form.setFormError(null);
     try {
-      await login(credentials);
+      await action();
     } catch (err) {
-      form.handleError(err);
+      if (mode === 'demo') {
+        setDemoUnavailable(true);
+        toast.error("Demo isn't available right now", { description: 'Please sign in with your own account, or try again shortly.' });
+      } else {
+        form.handleError(err);
+      }
       setSubmitting(null);
     }
   };
@@ -31,7 +37,7 @@ export default function Login() {
       email: (v) => (!v.trim() ? 'Email is required' : !/^\S+@\S+\.\S+$/.test(v) ? 'Enter a valid email' : null),
       password: (v) => (!v ? 'Password is required' : null),
     });
-    if (valid) signIn({ email: values.email.trim(), password: values.password }, 'form');
+    if (valid) signIn(() => login({ email: values.email.trim(), password: values.password }), 'form');
   };
 
   return (
@@ -53,10 +59,10 @@ export default function Login() {
         </Button>
       </form>
 
-      {import.meta.env.DEV && (
+      {!demoUnavailable && (
         <>
           <div className="auth__divider">or</div>
-          <Button size="lg" block icon={Sparkles} loading={submitting === 'demo'} disabled={!!submitting} onClick={() => signIn(DEMO, 'demo')}>
+          <Button size="lg" block icon={Sparkles} loading={submitting === 'demo'} disabled={!!submitting} onClick={() => signIn(loginDemo, 'demo')}>
             Explore the demo account
           </Button>
         </>

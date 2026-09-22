@@ -76,7 +76,7 @@ export default function CalendarPage() {
         : format(date, 'EEEE, MMMM d, yyyy');
 
   const createAt = (start, allDay = false) =>
-    openEditor('event', { defaults: allDay ? { start: startOfDay(start), end: startOfDay(start), allDay: false } : { start, end: addMinutes(start, 60) } });
+    openEditor('event', { defaults: allDay ? { start: startOfDay(start), end: startOfDay(start), allDay: true } : { start, end: addMinutes(start, 60) } });
 
   const openEvent = (occ) => openEditor('event', { item: occ });
   const shared = { occurrences, tasksByDay, remindersByDay, onOpenEvent: openEvent };

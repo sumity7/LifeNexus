@@ -85,6 +85,7 @@ const byId = { params: idParams };
 const authRouter = Router();
 authRouter.post('/register', authLimiter, validate({ body: s.auth.register }), auth.register);
 authRouter.post('/login', authLimiter, validate({ body: s.auth.login }), auth.login);
+authRouter.post('/demo', authLimiter, auth.demoLogin);
 authRouter.post('/forgot-password', forgotPasswordLimiter, validate({ body: s.auth.forgotPassword }), auth.forgotPassword);
 authRouter.post('/reset-password', authLimiter, validate({ body: s.auth.resetPassword }), auth.resetPassword);
 authRouter.post('/refresh', auth.refresh);

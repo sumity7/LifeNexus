@@ -21,15 +21,19 @@ const MODES = [
   { value: 'act', label: 'Act' },
 ];
 
+// A deliberate mix of LifeNexus-aware and general-knowledge prompts — this is where a
+// first-time visitor discovers the assistant answers both, not just questions about their data.
 const SUGGESTIONS = [
-  'What should I focus on today?',
-  'Which goals are behind?',
+  'Plan my day',
+  'What are my overdue tasks?',
+  'What is on my calendar today?',
   'How much did I spend this month?',
-  'Summarize my week.',
-  'What are my 3 most important tasks today?',
-  'Create a task for tomorrow to review my budget',
-  'Any patterns in my sleep and mood?',
-  'Which documents expire soon?',
+  'How are my habits going?',
+  'Summarize my week',
+  'Create a 6-hour DSA timetable',
+  'Give me a web developer interview roadmap',
+  'Explain binary search',
+  'What should I focus on today?',
 ];
 
 export default function AIPage() {

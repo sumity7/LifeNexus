@@ -13,6 +13,12 @@ const schema = z.object({
   CLIENT_ORIGIN: z.string().default('http://localhost:5173'),
   TRUST_PROXY: z.coerce.number().int().min(0).default(0),
 
+  // Public "Explore the demo account" login (POST /api/auth/demo) — issues a real session for
+  // this account without the client ever sending or holding its password. Set DEMO_ENABLED=false
+  // to turn the button/endpoint off entirely (e.g. a deploy with no demo data seeded).
+  DEMO_ENABLED: z.coerce.boolean().default(true),
+  DEMO_EMAIL: z.string().default('demo@lifeos.app'),
+
   // Documents
   STORAGE_PROVIDER: z.enum(['local', 's3']).default('local'),
   STORAGE_DIR: z.string().default('./uploads'),

@@ -76,6 +76,18 @@ export async function login(req, res) {
   res.json({ data: await startSession(req, res, user) });
 }
 
+/**
+ * "Explore the demo account" — issues a real session for the public demo user without the
+ * client ever sending or holding its password (unlike a normal login). Never available unless
+ * DEMO_ENABLED is set and that account has actually been seeded (`npm run seed`).
+ */
+export async function demoLogin(req, res) {
+  if (!env.DEMO_ENABLED) throw new AppError(404, 'The demo account is not available', { code: 'DEMO_DISABLED' });
+  const user = await User.findOne({ email: env.DEMO_EMAIL });
+  if (!user) throw new AppError(404, 'The demo account is not available right now', { code: 'DEMO_NOT_SEEDED' });
+  res.json({ data: await startSession(req, res, user) });
+}
+
 function logRefreshFailure(reason, req) {
   if (env.isTest) return;
   console.warn(`[auth/refresh] ${reason}`, {

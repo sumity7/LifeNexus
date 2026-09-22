@@ -17,6 +17,7 @@ import { useFormState } from '../../hooks/useFormState';
 import { DOCUMENT_ACCEPT, DOCUMENT_CATEGORIES, DOCUMENT_MAX_MB, DOCUMENT_META } from '../../lib/constants';
 import { countdown, formatKey, relativeDay } from '../../lib/dates';
 import { useNavigate } from 'react-router-dom';
+import './documents.css';
 
 const VIEWS = [{ value: 'all', label: 'All' }, { value: 'favorites', label: 'Favorites' }, { value: 'expiring', label: 'Expiring' }, { value: 'archived', label: 'Archived' }];
 const bytes = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
@@ -56,11 +57,12 @@ export default function DocumentsPage() {
       />
       <div className="docs-layout">
         <nav className="desktop-only" aria-label="Document categories">
-          <div className="notes-nav">
-            <button type="button" className={clsx('notes-nav__item', !category && 'is-active')} onClick={() => update({ category: null })}><FileText aria-hidden="true" /><span className="grow">All categories</span><span className="notes-nav__count">{meta ? Object.values(meta.categories).reduce((a, b) => a + b, 0) : ''}</span></button>
+          <div className="docs-nav">
+            <button type="button" className={clsx('docs-nav__item', !category && 'is-active')} onClick={() => update({ category: null })}><FileText aria-hidden="true" /><span className="grow">All categories</span><span className="docs-nav__count">{meta ? Object.values(meta.categories).reduce((a, b) => a + b, 0) : ''}</span></button>
+            <p className="docs-nav__section">Categories</p>
             {DOCUMENT_CATEGORIES.map((c) => (
-              <button key={c.value} type="button" className={clsx('notes-nav__item', category === c.value && 'is-active')} onClick={() => update({ category: c.value })}>
-                <span aria-hidden="true" style={{ width: 15, textAlign: 'center' }}>{c.emoji}</span><span className="grow">{c.label}</span><span className="notes-nav__count">{meta?.categories?.[c.value] ?? ''}</span>
+              <button key={c.value} type="button" className={clsx('docs-nav__item', category === c.value && 'is-active')} onClick={() => update({ category: c.value })}>
+                <span aria-hidden="true" style={{ width: 15, textAlign: 'center' }}>{c.emoji}</span><span className="grow">{c.label}</span><span className="docs-nav__count">{meta?.categories?.[c.value] ?? ''}</span>
               </button>
             ))}
           </div>

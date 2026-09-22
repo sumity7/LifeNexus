@@ -19,7 +19,7 @@ let refreshPromise = null;
 let unauthorizedHandler = null;
 
 // These endpoints report credential problems themselves — never retry them via refresh.
-const NO_REFRESH = new Set(['/auth/login', '/auth/register', '/auth/refresh', '/auth/logout', '/auth/forgot-password', '/auth/reset-password']);
+const NO_REFRESH = new Set(['/auth/login', '/auth/demo', '/auth/register', '/auth/refresh', '/auth/logout', '/auth/forgot-password', '/auth/reset-password']);
 
 const FALLBACK_MESSAGES = {
   400: 'The request was invalid.',

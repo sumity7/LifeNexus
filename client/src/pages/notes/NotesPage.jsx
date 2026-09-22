@@ -426,9 +426,12 @@ function NoteEditor({ note, folders, onBack }) {
           icon={archived ? ArchiveRestore : Archive}
           label={archived ? 'Restore note' : 'Archive note'}
           onClick={() => {
-            setArchived(!archived);
-            queue({ archived: !archived }, 0);
-            toast.success(archived ? 'Note restored' : 'Note archived');
+            const next = !archived;
+            setArchived(next);
+            update.mutate(
+              { id: note._id, archived: next },
+              { onSuccess: () => toast.success(next ? 'Note archived' : 'Note restored'), onError: (err) => { setArchived(!next); toast.apiError(err, "Couldn't save note"); } },
+            );
           }}
         />
         <IconButton icon={Trash2} label="Delete note" onClick={onDelete} />

@@ -3,6 +3,7 @@
  * Only the demo user's data is replaced — other accounts are untouched.
  * All dates are generated relative to today so the demo always looks "live".
  */
+import crypto from 'node:crypto';
 import { env } from '../config/env.js';
 import { connectDB, disconnectDB } from '../config/db.js';
 import { User } from '../models/User.js';
@@ -19,13 +20,15 @@ import { Reminder } from '../models/Reminder.js';
 import { Project } from '../models/Project.js';
 import { JournalEntry } from '../models/Journal.js';
 import { FocusSession } from '../models/FocusSession.js';
+import { Document } from '../models/Document.js';
 import { Link } from '../models/Link.js';
 import { ActivityLog } from '../models/ActivityLog.js';
 import { deleteUserData } from '../services/account.js';
+import { getStorage } from '../services/storage/index.js';
 import { addDays, addMonths, dayOfWeek, rangeKeys, serverToday, startOfWeek } from '../utils/dates.js';
 import { htmlToText, sanitizeNoteHtml } from '../utils/html.js';
 
-export const DEMO_USER = { name: 'Alex Morgan', email: 'demo@lifeos.app', password: 'Demo1234!' };
+export const DEMO_USER = { name: 'Alex Morgan', email: env.DEMO_EMAIL, password: 'Demo1234!' };
 
 /* Deterministic randomness so every seed run produces the same demo. */
 function mulberry32(seed) {
@@ -36,7 +39,11 @@ function mulberry32(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-const rand = mulberry32(20260915);
+// Reseeded at the start of every seedDemo() call (not just once at module load) — otherwise a
+// second in-process call (e.g. two calls in the same test run, or any future programmatic
+// reseed without a process restart) would continue consuming the same PRNG sequence and produce
+// a different "random" demo each time, breaking the "same seed run produces the same demo" claim.
+let rand = mulberry32(20260915);
 const chance = (p) => rand() < p;
 const between = (min, max) => min + rand() * (max - min);
 const int = (min, max) => Math.floor(between(min, max + 1));
@@ -47,6 +54,7 @@ const at = (key, time = '12:00') => new Date(`${key}T${time}:00`);
 const endOfDay = (key) => new Date(`${key}T23:59:59.999`);
 
 export async function seedDemo() {
+  rand = mulberry32(20260915);
   const today = serverToday();
   const d = (n) => addDays(today, n);
   const stamp = (key) => ({ createdAt: at(key), updatedAt: at(key) });
@@ -476,10 +484,86 @@ export async function seedDemo() {
       { title: 'Quarterly tax estimate', category: 'deadline', date: d(26), leadDays: 10, important: true },
       { title: 'Wedding anniversary', category: 'birthday', date: d(40), recurrence: 'yearly', leadDays: 14, important: true },
       { title: 'Domain name renewal — alexmorgan.dev', category: 'renewal', date: d(55), recurrence: 'yearly', leadDays: 30 },
-      { title: 'Passport expires — renew', category: 'deadline', date: addMonths(today, 7), leadDays: 60 },
       { title: 'Submit expense report', category: 'deadline', date: d(-2), completed: true, completedAt: at(d(-2), '16:00') },
+      // Passport expiry is not listed here — the Passport DEMO document below carries its own
+      // expiryDate, which generates a linked reminder automatically (the same way a real upload
+      // with an expiry date does), rather than a second, disconnected one.
     ].map((r) => ({ ...r, user: uid })),
   );
+
+  /* ───── Documents ───── */
+  // Minimal, valid, single-page PDFs generated in-memory (no bundled assets, no external fetch) —
+  // clearly labelled SAMPLE/DEMO so nobody mistakes them for real records.
+  function demoPdf(title, lines) {
+    const esc = (s) => String(s).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+    const body = [
+      `BT /F1 18 Tf 50 730 Td (${esc(title)}) Tj ET`,
+      `BT /F1 9 Tf 50 708 Td (SAMPLE / DEMO DOCUMENT \\267 not a real record) Tj ET`,
+      ...lines.map((line, i) => `BT /F1 11 Tf 50 ${674 - i * 20} Td (${esc(line)}) Tj ET`),
+    ].join('\n');
+    const objects = [
+      '<</Type/Catalog/Pages 2 0 R>>',
+      '<</Type/Pages/Kids[3 0 R]/Count 1>>',
+      '<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]/Resources<</Font<</F1 4 0 R>>>>/Contents 5 0 R>>',
+      '<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>',
+      `<</Length ${Buffer.byteLength(body)}>>\nstream\n${body}\nendstream`,
+    ];
+    let pdf = '%PDF-1.4\n';
+    const offsets = [0];
+    objects.forEach((obj, i) => {
+      offsets.push(Buffer.byteLength(pdf));
+      pdf += `${i + 1} 0 obj\n${obj}\nendobj\n`;
+    });
+    const xrefStart = Buffer.byteLength(pdf);
+    pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+    for (let i = 1; i <= objects.length; i++) pdf += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
+    pdf += `trailer\n<</Size ${objects.length + 1}/Root 1 0 R>>\nstartxref\n${xrefStart}\n%%EOF`;
+    return Buffer.from(pdf, 'latin1');
+  }
+
+  const storage = getStorage();
+  async function seedDocument({ title, category, lines, expiryDate, remindDaysBefore = 30 }) {
+    const buffer = demoPdf(title, lines);
+    const storageKey = await storage.save({ buffer, mimeType: 'application/pdf', userId: String(uid) });
+    const doc = new Document({
+      user: uid,
+      title,
+      originalName: `${title.replace(/\s+/g, '-')}.pdf`,
+      mimeType: 'application/pdf',
+      size: buffer.length,
+      storageKey,
+      sha256: crypto.createHash('sha256').update(buffer).digest('hex'),
+      category,
+      tags: ['demo'],
+      notes: 'Sample document for demo purposes only — not a real record.',
+      expiryDate: expiryDate ?? null,
+      remindDaysBefore: expiryDate ? remindDaysBefore : null,
+    });
+    if (doc.expiryDate) {
+      // Mirrors syncExpiryReminder() in controllers/documents.js, so the demo shows a real,
+      // working document → reminder link exactly as the app creates one on a real upload.
+      const reminder = await Reminder.create({
+        user: uid, title: `${doc.title} expires`, date: doc.expiryDate, category: 'renewal',
+        leadDays: Math.min(60, doc.remindDaysBefore), notes: `Renew or update "${doc.title}" before it expires.`, important: true,
+      });
+      doc.reminder = reminder._id;
+    }
+    await doc.save();
+    return doc;
+  }
+
+  const [panCard, passport, resume, degree, insuranceDoc, bankStatement, flightItinerary, employmentLetter, utilityBill] = await Promise.all([
+    seedDocument({ title: 'PAN Card DEMO', category: 'identity', lines: ['Permanent Account Number: ABCDE1234F', 'Name: Alex Morgan', 'Date of Birth: 14-03-1994', "Father's Name: Robert Morgan"] }),
+    seedDocument({ title: 'Passport DEMO', category: 'identity', expiryDate: addMonths(today, 7), remindDaysBefore: 60, lines: ['Passport No: N1234567', 'Surname: MORGAN', 'Given Name: ALEX', 'Nationality: UNITED STATES OF AMERICA', 'Date of Issue: 12 Jan 2022'] }),
+    seedDocument({ title: 'Resume DEMO', category: 'work', lines: ['Alex Morgan', 'Product Designer', '5+ years of experience in UX/UI design', 'Portfolio: alexmorgan.dev'] }),
+    seedDocument({ title: 'Degree Certificate DEMO', category: 'education', lines: ['Bachelor of Design', 'State University', 'Conferred: May 2019'] }),
+    seedDocument({ title: 'Insurance DEMO', category: 'insurance', expiryDate: d(150), lines: ['Policy Holder: Alex Morgan', 'Policy Number: INS-88213-HD', 'Coverage: Health Insurance', 'Provider: Demo Insurance Co.'] }),
+    seedDocument({ title: 'Bank Statement DEMO', category: 'finance', lines: ['Account Holder: Alex Morgan', 'Account: Main Checking ••••4821', 'Statement Period: last month'] }),
+    seedDocument({ title: 'Flight Itinerary DEMO', category: 'travel', lines: ['Flight TP 1351', 'Lisbon (LIS) — Departs 07:40', 'Passenger: Alex Morgan', 'Booking Reference: DEMO123'] }),
+    seedDocument({ title: 'Employment Letter DEMO', category: 'work', lines: ['To Whom It May Concern,', 'This confirms Alex Morgan is employed at Northwind Labs.', 'Position: Product Designer — Since March 2021'] }),
+    seedDocument({ title: 'Utility Bill DEMO', category: 'bills', lines: ['Account Holder: Alex Morgan', 'Service: Electricity', 'Billing Period: last month'] }),
+  ]);
+  void panCard; void passport; void degree; void insuranceDoc; void bankStatement; void employmentLetter; void utilityBill;
 
   /* ───── Links (life graph) ───── */
   const notesByTitle = Object.fromEntries((await Note.find({ user: uid }).select('title').lean()).map((n) => [n.title, n._id]));
@@ -489,7 +573,9 @@ export async function seedDemo() {
     [{ type: 'goal', id: marathon._id }, { type: 'note', id: notesByTitle['Half marathon training plan'] }],
     [{ type: 'project', id: lisbonProject._id }, { type: 'note', id: notesByTitle['Lisbon trip itinerary'] }],
     [{ type: 'project', id: lisbonProject._id }, { type: 'event', id: tripEvent?._id }],
+    [{ type: 'project', id: lisbonProject._id }, { type: 'document', id: flightItinerary._id }],
     [{ type: 'goal', id: reading._id }, { type: 'note', id: notesByTitle['Book notes: Atomic Habits'] }],
+    [{ type: 'goal', id: portfolio._id }, { type: 'document', id: resume._id }],
   ].filter(([a, b]) => a.id && b.id);
   const order = (x, y) => (`${x.type}:${x.id}` <= `${y.type}:${y.id}` ? [x, y] : [y, x]);
   await Link.insertMany(linkDefs.map(([x, y]) => { const [a, b] = order(x, y); return { user: uid, a, b }; }));
@@ -507,7 +593,8 @@ export async function seedDemo() {
     counts: {
       goals: goalDocs.length, projects: 3, tasks: openTasks.length + completedTasks.length, habits: habits.length, habitLogs: habitLogs.length,
       notes: noteDefs.length, transactions: transactions.length, healthLogs: healthLogs.length, workouts: workouts.length,
-      routines: routines.length, reminders: 11, journal: journalEntries.length, focusSessions: focusSessions.length, links: linkDefs.length,
+      routines: routines.length, reminders: 12, journal: journalEntries.length, focusSessions: focusSessions.length, links: linkDefs.length,
+      documents: 9,
     },
   };
 }

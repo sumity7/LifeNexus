@@ -146,6 +146,33 @@ describe('auth', () => {
   });
 });
 
+describe('demo login (POST /api/auth/demo)', () => {
+  it('returns a clean, specific error when the demo account has not been seeded — never a raw 500', async () => {
+    const res = await request(ctx.app).post('/api/auth/demo').send({});
+    assert.equal(res.status, 404);
+    assert.equal(res.body.error.code, 'DEMO_NOT_SEEDED');
+  });
+
+  it('issues a real session for the configured demo account once it exists, without the client sending a password', async () => {
+    await request(ctx.app).post('/api/auth/register').send({ name: 'Alex Morgan', email: 'demo@lifeos.app', password: 'Demo1234!' });
+    const res = await request(ctx.app).post('/api/auth/demo').send({});
+    assert.equal(res.status, 200);
+    assert.equal(res.body.data.user.email, 'demo@lifeos.app');
+    assert.ok(res.body.data.accessToken, 'a normal access token is issued, same as a real login');
+    const cookie = refreshCookie(res);
+    assert.match(cookie, /HttpOnly/i, 'the refresh cookie is issued exactly like a normal login');
+    // Prove the session is actually usable, not just a look-alike response.
+    const me = await request(ctx.app).get('/api/auth/me').set('Authorization', `Bearer ${res.body.data.accessToken}`);
+    assert.equal(me.status, 200);
+    assert.equal(me.body.data.email, 'demo@lifeos.app');
+  });
+
+  it('never requires or reads a password from the request body', async () => {
+    const res = await request(ctx.app).post('/api/auth/demo').send({ password: 'this is ignored, not even validated' });
+    assert.equal(res.status, 200, 'a garbage/irrelevant body is simply ignored, not rejected');
+  });
+});
+
 describe('password reset', () => {
   let setEmailProvider;
   const calls = [];
