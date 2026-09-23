@@ -19,6 +19,10 @@ const schema = z.object({
   DEMO_ENABLED: z.coerce.boolean().default(true),
   DEMO_EMAIL: z.string().default('demo@lifeos.app'),
 
+  // Auto-injected by Render on every deploy (the service's own public URL) — used only to keep
+  // a free-tier instance from spinning down; see services/keepAlive.js. Never set this by hand.
+  RENDER_EXTERNAL_URL: z.string().optional(),
+
   // Documents
   STORAGE_PROVIDER: z.enum(['local', 's3']).default('local'),
   STORAGE_DIR: z.string().default('./uploads'),
