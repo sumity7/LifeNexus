@@ -25,6 +25,7 @@
 .ai-layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 16px; align-items: start; }
 .ai-sidebar { position: sticky; top: calc(var(--topbar-h) + 16px); display: flex; flex-direction: column; gap: 6px; }
 .ai-thread { display: flex; flex-direction: column; min-height: calc(100vh - var(--topbar-h) - 140px); }
+.ai-convos-toggle { display: none; }
 .ai-messages { flex: 1; display: flex; flex-direction: column; gap: 14px; padding: 4px 0 16px; }
 .ai-msg { display: flex; gap: 10px; max-width: 820px; }
 .ai-msg--user { align-self: flex-end; flex-direction: row-reverse; }
@@ -137,6 +138,29 @@
 @media (max-width: 1024px) {
   .ai-layout, .journal-layout { grid-template-columns: minmax(0, 1fr); }
   .ai-sidebar { position: static; }
+}
+/* True mobile: the conversation list becomes an off-canvas drawer (same pattern as the main
+   sidebar) instead of a full-width block stacked above every chat — otherwise a visitor has to
+   scroll past their conversation history before they can even see the current thread. */
+@media (max-width: 900px) {
+  .ai-convos-toggle { display: inline-flex; }
+  .ai-sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 90;
+    width: min(320px, 88vw);
+    height: 100dvh;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    background: var(--surface);
+    box-shadow: var(--shadow-xl);
+    transform: translateX(-105%);
+    transition: transform var(--dur-slow) var(--ease-out);
+    visibility: hidden;
+  }
+  .ai-sidebar.is-open { transform: none; visibility: visible; }
 }
 @media (max-width: 640px) {
   .focus-timer__time { font-size: 2.75rem; }

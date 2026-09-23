@@ -1,6 +1,7 @@
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import jwt from 'jsonwebtoken';
 import request from 'supertest';
 import { createUser, useTestApp } from './helpers.js';
 
@@ -92,6 +93,33 @@ describe('auth', () => {
   it('rejects refresh without a cookie', async () => {
     const res = await request(ctx.app).post('/api/auth/refresh');
     assert.equal(res.status, 401);
+  });
+
+  it('rejects an expired access token distinctly (TOKEN_INVALID) so the client knows to refresh, not to treat it as a hard failure', async () => {
+    const u = await createUser(ctx.app);
+    const expired = jwt.sign({}, process.env.JWT_ACCESS_SECRET, { subject: String(u.user._id), expiresIn: '-1s', issuer: 'lifeos', algorithm: 'HS256' });
+    const res = await request(ctx.app).get('/api/auth/me').set('Authorization', `Bearer ${expired}`);
+    assert.equal(res.status, 401);
+    assert.equal(res.body.error.code, 'TOKEN_INVALID');
+    // The refresh cookie from registration is still valid — the client's retry-after-refresh path works.
+    const refreshed = await u.agent.post('/api/auth/refresh');
+    assert.equal(refreshed.status, 200);
+    const retried = await request(ctx.app).get('/api/auth/me').set('Authorization', `Bearer ${refreshed.body.data.accessToken}`);
+    assert.equal(retried.status, 200);
+  });
+
+  it('handles concurrent refresh calls against the same valid cookie without corrupting either session', async () => {
+    const u = await createUser(ctx.app);
+    const cookie = u.agent.jar.getCookie('lifeos_rt', { path: '/api/auth', domain: '127.0.0.1', secure: false, script: false });
+    const raw = `lifeos_rt=${cookie.value}`;
+    const [a, b] = await Promise.all([
+      request(ctx.app).post('/api/auth/refresh').set('Cookie', raw),
+      request(ctx.app).post('/api/auth/refresh').set('Cookie', raw),
+    ]);
+    // Both must resolve cleanly (200, inside the rotation grace window) — neither request should
+    // 500 or corrupt state just because another one raced it with the same token.
+    assert.ok([a.status, b.status].every((s) => s === 200), `expected both concurrent refreshes to succeed, got ${a.status} and ${b.status}`);
+    assert.ok(a.body.data.accessToken && b.body.data.accessToken);
   });
 
   it('updates profile and preferences', async () => {

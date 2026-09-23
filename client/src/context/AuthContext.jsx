@@ -5,6 +5,8 @@ import { useTheme } from './ThemeContext';
 import { useToast } from './ToastContext';
 
 const AuthContext = createContext(null);
+const STARTUP_REFRESH_RETRIES = 2;
+const STARTUP_REFRESH_RETRY_DELAY_MS = 1500;
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -37,14 +39,31 @@ export function AuthProvider({ children }) {
   startSessionRef.current = startSession;
   endSessionRef.current = endSession;
 
-  // Restore the session exactly once on page load via the httpOnly refresh cookie.
+  // Restore the session on page load via the httpOnly refresh cookie. A real response — even a
+  // 401 "no session" — is a definitive answer and resolves immediately. A network failure (the
+  // request never reached the server at all, e.g. a free-tier backend still cold-starting) is
+  // NOT proof the user is logged out, so it gets a few bounded retries before giving up — one
+  // failed attempt must never silently sign out someone with a perfectly valid session.
   useEffect(() => {
     let cancelled = false;
-    refreshSession()
-      .then((data) => !cancelled && startSessionRef.current(data))
-      .catch(() => !cancelled && endSessionRef.current());
+    let retryTimer;
+    const attempt = async (n) => {
+      try {
+        const data = await refreshSession();
+        if (!cancelled) startSessionRef.current(data);
+      } catch (err) {
+        if (cancelled) return;
+        if (err.status === 0 && n < STARTUP_REFRESH_RETRIES) {
+          retryTimer = setTimeout(() => attempt(n + 1), STARTUP_REFRESH_RETRY_DELAY_MS);
+          return;
+        }
+        endSessionRef.current();
+      }
+    };
+    attempt(0);
     return () => {
       cancelled = true;
+      clearTimeout(retryTimer);
     };
   }, []);
 

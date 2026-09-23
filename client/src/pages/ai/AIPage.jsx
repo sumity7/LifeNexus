@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import clsx from 'clsx';
 import { formatDistanceToNowStrict } from 'date-fns';
-import { Bot, Clock, CornerDownLeft, MessageSquarePlus, Send, Settings2, ShieldCheck, Sparkles, Trash2, User as UserIcon } from 'lucide-react';
+import { Bot, Clock, CornerDownLeft, MessageSquare, MessageSquarePlus, Send, Settings2, ShieldCheck, Sparkles, Trash2, User as UserIcon } from 'lucide-react';
 import { Badge, Button, Card, EmptyState, ErrorState, IconButton, Kbd, PageHeader, Select, Skeleton, SkeletonList } from '../../components/ui';
 import { Markdown } from '../../components/Markdown';
 import { ActionProposals } from '../../features/ai/ActionProposals';
@@ -62,10 +62,12 @@ export default function AIPage() {
   const [pendingId, setPendingId] = useState(null);
   const [results, setResults] = useState({});
   const [localMessages, setLocalMessages] = useState([]);
+  const [convosOpen, setConvosOpen] = useState(false);
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
 
   useEffect(() => setLocalMessages([]), [conversationId]);
+  useEffect(() => setConvosOpen(false), [conversationId]);
   // Defensive: conversation.data can refresh from other triggers (remount, window refocus) while
   // a local message hasn't been cleared yet — drop any local entry the server copy already has,
   // by _id, so the same message (e.g. a real, persisted assistant reply) never renders twice.
@@ -129,6 +131,7 @@ export default function AIPage() {
   const newChat = () => {
     setParams({}, { replace: true });
     setLocalMessages([]);
+    setConvosOpen(false);
     textareaRef.current?.focus();
   };
 
@@ -137,10 +140,11 @@ export default function AIPage() {
       <PageHeader
         title="Assistant"
         subtitle="One assistant that understands your tasks, calendar, goals, habits, health, notes, journal, documents and finances — with your permission."
-        actions={<><Button icon={Settings2} onClick={() => navigate('/settings#ai')}>AI settings</Button><Button variant="primary" icon={MessageSquarePlus} onClick={newChat}>New chat</Button></>}
+        actions={<><Button className="ai-convos-toggle" icon={MessageSquare} onClick={() => setConvosOpen(true)}>Conversations</Button><Button icon={Settings2} onClick={() => navigate('/settings#ai')}>AI settings</Button><Button variant="primary" icon={MessageSquarePlus} onClick={newChat}>New chat</Button></>}
       />
       <div className="ai-layout">
-        <aside className="ai-sidebar">
+        {convosOpen && <div className="sidebar-backdrop" onClick={() => setConvosOpen(false)} aria-hidden="true" />}
+        <aside className={clsx('ai-sidebar', convosOpen && 'is-open')}>
           <Card title="Conversations" flush>
             <div style={{ padding: '4px 6px 8px', maxHeight: 420, overflowY: 'auto' }}>
               {conversations.isPending ? <SkeletonList rows={3} /> : !conversations.data?.length ? <p className="text-xs muted" style={{ padding: '4px 8px' }}>No conversations yet.</p> : conversations.data.map((c) => (

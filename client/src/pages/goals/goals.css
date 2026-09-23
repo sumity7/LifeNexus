@@ -1,4 +1,6 @@
-.goal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+/* 260px (not 300px) so a single column still fits inside the ~288px of content width left on a
+   320px-wide phone after page padding — auto-fill/minmax already handles every wider size. */
+.goal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
 .goal-card { display: flex; flex-direction: column; gap: 10px; padding: 16px; min-height: 196px; }
 .goal-card__title { font-size: var(--text-md); font-weight: 600; letter-spacing: -0.01em; }
 .goal-card__description {
