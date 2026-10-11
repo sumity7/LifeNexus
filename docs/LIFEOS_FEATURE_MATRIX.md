@@ -1,4 +1,4 @@
-# LifeOS — Feature Matrix
+# LifeNexus — Feature Matrix
 
 Status at audit time (Phase 0) with the required change. See the "Result" column for the state after implementation.
 

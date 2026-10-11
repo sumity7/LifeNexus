@@ -499,7 +499,7 @@ export const ai = {
   listMessages: z.object({ limit: z.coerce.number().int().min(1).max(200).optional() }),
   rename: z.object({ title: requiredText(120, 'Title') }),
   action: z.object({ messageId: objectId, actionId: objectId, decision: z.enum(['execute', 'reject']), date: dateKey.optional() }),
-  brief: z.object({ date: dateKey.optional(), refresh: boolString.optional() }),
+  brief: z.object({ date: dateKey.optional(), refresh: boolString.optional(), tz: z.string().trim().max(64).optional() }),
   review: z.object({ week: dateKey.optional(), refresh: boolString.optional() }),
   noteAction: z.object({
     action: z.enum(['summarize', 'rewrite', 'extract_tasks', 'extract_dates', 'checklist', 'ask']),

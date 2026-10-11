@@ -3,7 +3,7 @@ import { SmtpProvider } from './smtp.js';
 
 /**
  * Email provider interface: send({ to, subject, html, text }) → void (throws on failure).
- * Only SMTP ships (works with any SMTP-speaking provider). LifeOS works fully
+ * Only SMTP ships (works with any SMTP-speaking provider). LifeNexus works fully
  * without one configured — password reset requests still respond normally,
  * they just don't deliver an email (logged server-side).
  */

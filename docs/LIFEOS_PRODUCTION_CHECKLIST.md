@@ -1,4 +1,4 @@
-# LifeOS — Production Launch Checklist
+# LifeNexus — Production Launch Checklist
 
 Everything below the line is code-level and already done. Everything above it needs
 a decision or an account only you can make/create — nobody can do these for you.

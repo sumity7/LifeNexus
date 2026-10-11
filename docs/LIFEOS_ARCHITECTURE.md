@@ -1,6 +1,6 @@
-# LifeOS — Architecture
+# LifeNexus — Architecture
 
-LifeOS is a single connected system: every module stores data in MongoDB, scoped to a user, and connects through explicit references, a generic link layer, an activity log, and an AI context engine.
+LifeNexus is a single connected system: every module stores data in MongoDB, scoped to a user, and connects through explicit references, a generic link layer, an activity log, and an AI context engine.
 
 ```
 React SPA (Vite)

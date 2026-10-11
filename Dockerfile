@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-# LifeOS ships as a single container: the Express API serves both /api and the
+# LifeNexus ships as a single container: the Express API serves both /api and the
 # built React SPA (see server/src/app.js). MongoDB is a separate service (see
 # docker-compose.yml) — this image has no database in it.
 

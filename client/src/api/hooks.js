@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, request, uploadForm } from './client';
-import { todayKey } from '../lib/dates';
+import { localTimeZone, todayKey } from '../lib/dates';
 
 // Aggregated views that depend on data from every module.
 const CROSS_MODULE = [['dashboard'], ['analytics'], ['search']];
@@ -352,7 +352,7 @@ export const useDeleteSavingsGoal = () => useApiMutation((id) => api.del(`/finan
 
 export const useAIStatus = () => useQuery({ queryKey: ['ai', 'status'], queryFn: ({ signal }) => api.get('/ai/status', undefined, { signal }), staleTime: 5 * 60_000 });
 export const useDailyBrief = (options = {}) =>
-  useQuery({ queryKey: ['ai', 'brief', todayKey()], queryFn: ({ signal }) => api.get('/ai/brief', { date: todayKey() }, { signal }), staleTime: 10 * 60_000, ...options });
+  useQuery({ queryKey: ['ai', 'brief', todayKey()], queryFn: ({ signal }) => api.get('/ai/brief', { date: todayKey(), tz: localTimeZone() }, { signal }), staleTime: 10 * 60_000, ...options });
 export const useWeeklyReview = (week) =>
   useQuery({ queryKey: ['ai', 'review', week ?? 'current'], queryFn: ({ signal }) => api.get('/ai/review', { week }, { signal }), placeholderData: keepPreviousData });
 export const useRefreshInsight = () =>

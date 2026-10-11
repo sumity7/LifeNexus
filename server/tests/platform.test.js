@@ -3,10 +3,14 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import fs from 'node:fs';
 import { createUser, useTestApp } from './helpers.js';
+import { addDays, serverToday } from '../src/utils/dates.js';
 
 process.env.STORAGE_DIR = path.join(process.cwd(), 'uploads-test');
 const ctx = useTestApp('platform');
 const TODAY = '2026-09-15';
+// Expiry status is judged against the real current date, so "expiring soon" has to be relative to it.
+const REAL_TODAY = serverToday();
+const EXPIRING_SOON = addDays(REAL_TODAY, 10);
 const PDF = Buffer.from('%PDF-1.4\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF');
 
 describe('projects and links', () => {
@@ -105,13 +109,13 @@ describe('documents', () => {
 
     const list = await u.get('/api/documents?view=expiring');
     assert.equal(list.body.data.length, 0);
-    const soon = await u.patch(`/api/documents/${doc._id}`).send({ expiryDate: '2026-10-01', title: 'Passport' });
+    const soon = await u.patch(`/api/documents/${doc._id}`).send({ expiryDate: EXPIRING_SOON, title: 'Passport' });
     assert.equal(soon.body.data.expiryStatus, 'expiring');
     const updatedReminder = await u.get('/api/reminders');
-    assert.ok(updatedReminder.body.data.some((r) => r.source?.id === doc._id && r.date === '2026-10-01' && r.title === 'Passport expires'));
+    assert.ok(updatedReminder.body.data.some((r) => r.source?.id === doc._id && r.date === EXPIRING_SOON && r.title === 'Passport expires'));
     assert.equal((await u.get('/api/documents?view=expiring')).body.data.length, 1);
 
-    const notifications = await u.get(`/api/notifications?date=${TODAY}`);
+    const notifications = await u.get(`/api/notifications?date=${REAL_TODAY}`);
     assert.ok(notifications.body.data.some((n) => n.type === 'document' && n.entityId === doc._id));
     assert.ok(notifications.body.meta.unread >= 1);
 
@@ -190,8 +194,12 @@ describe('finance extensions', () => {
 
     const rule = await u.post('/api/finance/recurring').send({ type: 'income', amount: 3000, category: 'Salary', nextDate: '2026-08-01', frequency: 'monthly', account: bank._id });
     assert.equal(rule.status, 201);
+    // The finance page loads these together; each one tries to post what's due.
+    await Promise.all([u.get('/api/finance/transactions'), u.get('/api/finance/recurring'), u.get(`/api/finance/summary?month=${TODAY.slice(0, 7)}`), u.get('/api/finance/transactions?type=income')]);
     const txs = await u.get('/api/finance/transactions?type=income');
     assert.ok(txs.body.data.length >= 2, 'due recurring transactions are posted');
+    const postedDates = txs.body.data.filter((t) => String(t.recurring) === rule.body.data._id).map((t) => t.date);
+    assert.equal(new Set(postedDates).size, postedDates.length, 'each due occurrence is posted exactly once, even when requests overlap');
     const rules = await u.get('/api/finance/recurring');
     assert.ok(rules.body.data[0].nextDate > TODAY);
 
@@ -311,6 +319,21 @@ describe('AI layer', () => {
     assert.equal(brief.body.data.narrative, null);
     assert.ok(brief.body.data.summary);
     set(original);
+  });
+
+  it("gives the brief event times as the user's clock reads them, never a raw UTC timestamp", async () => {
+    const u = await createUser(ctx.app);
+    await u.post('/api/events').send({ title: 'Car service', start: `${TODAY}T04:30:00Z`, end: `${TODAY}T05:30:00Z` });
+    const events = async (query) => (await u.get(`/api/ai/brief?date=${TODAY}${query}`)).body.data.summary.events;
+
+    const [local] = await events('&tz=Asia/Kolkata');
+    assert.equal(local.title, 'Car service');
+    assert.match(local.time, /^10:00\sAM$/);
+    assert.equal(local.start, undefined);
+
+    const [unknown] = await events('&tz=Not/AZone');
+    assert.equal(unknown.title, 'Car service');
+    assert.equal(unknown.time, undefined, 'a wrong time is worse than none');
   });
 
   it('chats with retrieved context, respects permissions, and requires confirmation for actions', async () => {

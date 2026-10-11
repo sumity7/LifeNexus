@@ -1,4 +1,4 @@
-# LifeOS — Final QA
+# LifeNexus — Final QA
 
 Date: 2026-09-15.
 

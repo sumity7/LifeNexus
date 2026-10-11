@@ -1,4 +1,4 @@
-# LifeOS — Personal Operating System
+# LifeNexus — Personal Operating System
 
 One connected system for tasks, projects, calendar, goals, reminders, habits, routines, focus, health, notes, journal, documents and finance — with an AI assistant that understands all of it (with your permission).
 
@@ -29,7 +29,7 @@ Without it, everything works; AI screens explain how to enable it, and the daily
 
 ```
 EMAIL_PROVIDER=smtp
-SMTP_HOST=... SMTP_USER=... SMTP_PASS=... EMAIL_FROM="LifeOS <noreply@yourdomain.com>"
+SMTP_HOST=... SMTP_USER=... SMTP_PASS=... EMAIL_FROM="LifeNexus <noreply@yourdomain.com>"
 ```
 
 Works with any SMTP provider (Brevo, Resend, Postmark, SES, Gmail app password). Without it, "forgot password" still responds normally — it just doesn't deliver an email.

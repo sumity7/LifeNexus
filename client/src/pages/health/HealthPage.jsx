@@ -91,10 +91,10 @@ export default function HealthPage() {
             >
               {!s ? <Skeleton height="100%" /> : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={series} margin={{ top: 12, right: 4, bottom: 0, left: -8 }}>
+                  <BarChart data={series} margin={{ top: 12, right: 4, bottom: 0, left: 0 }}>
                     <CartesianGrid vertical={false} stroke={theme.chartGrid} />
                     <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: theme.chartBaseline }} tick={theme.axisTick} interval="preserveStartEnd" minTickGap={16} />
-                    <YAxis tickLine={false} axisLine={false} tick={theme.axisTick} width={40} tickFormatter={(v) => `${v / 1000}L`} />
+                    <YAxis tickLine={false} axisLine={false} tick={theme.axisTick} width={36} domain={[0, (max) => Math.max(max, s.goals.waterGoalMl)]} tickFormatter={(v) => `${Math.round(v / 100) / 10}L`} />
                     <Tooltip cursor={theme.cursorFill} content={<ChartTooltip valueFormatter={(v) => formatLiters(v)} />} />
                     <ReferenceLine y={s.goals.waterGoalMl} stroke={theme.textSecondary} strokeWidth={1} label={{ value: 'Goal', position: 'insideTopRight', fill: theme.chartAxis, fontSize: 11 }} />
                     <Bar dataKey="waterMl" name="Water" fill={theme.chart1} {...BAR_PROPS} />
@@ -154,10 +154,10 @@ export default function HealthPage() {
           table={{ columns: [{ key: 'date', label: 'Date' }, { key: 'weightKg', label: 'Weight (kg)', numeric: true }], rows: w.series }}
         >
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={w.series.map((x) => ({ ...x, label: format(fromKey(x.date), 'MMM d') }))} margin={{ top: 8, right: 8, bottom: 0, left: -8 }}>
+            <LineChart data={w.series.map((x) => ({ ...x, label: format(fromKey(x.date), 'MMM d') }))} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
               <CartesianGrid vertical={false} stroke={theme.chartGrid} />
               <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: theme.chartBaseline }} tick={theme.axisTick} interval="preserveStartEnd" minTickGap={24} />
-              <YAxis domain={['auto', 'auto']} tickLine={false} axisLine={false} tick={theme.axisTick} width={44} tickFormatter={(v) => `${v}kg`} />
+              <YAxis domain={['auto', 'auto']} tickLine={false} axisLine={false} tick={theme.axisTick} width={52} tickFormatter={(v) => `${v}kg`} />
               <Tooltip content={<ChartTooltip valueFormatter={(v) => `${v} kg`} />} cursor={{ stroke: theme.chartBaseline }} />
               {s?.goals.targetWeightKg && <ReferenceLine y={s.goals.targetWeightKg} stroke={theme.textSecondary} strokeWidth={1} label={{ value: 'Target', position: 'insideTopRight', fill: theme.chartAxis, fontSize: 11 }} />}
               <Line type="monotone" dataKey="weightKg" name="Weight" stroke={theme.chart1} {...LINE_PROPS} dot={{ r: 3, fill: theme.chart1, stroke: theme.surface, strokeWidth: 2 }} activeDot={{ r: 5, stroke: theme.surface, strokeWidth: 2 }} />

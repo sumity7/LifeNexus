@@ -38,7 +38,7 @@ const schema = z.object({
   S3_FORCE_PATH_STYLE: z.coerce.boolean().default(false),
   EXTRACTION_PROVIDER: z.string().default(''),
 
-  // Email (optional — LifeOS works fully without it; only password-reset delivery needs it).
+  // Email (optional — LifeNexus works fully without it; only password-reset delivery needs it).
   // "smtp" works with any SMTP-speaking provider: Gmail app password, Brevo, Resend, Postmark,
   // Mailgun, SES SMTP, or a self-hosted mail server.
   EMAIL_PROVIDER: z.enum(['smtp', 'none']).default('none'),
@@ -48,10 +48,10 @@ const schema = z.object({
   SMTP_SECURE: z.coerce.boolean().default(false),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
-  // "LifeOS <noreply@yourdomain.com>" — required for EMAIL_PROVIDER=smtp.
+  // "LifeNexus <noreply@yourdomain.com>" — required for EMAIL_PROVIDER=smtp.
   EMAIL_FROM: z.string().optional(),
 
-  // AI (optional — LifeOS works without it, AI features show as "not configured")
+  // AI (optional — LifeNexus works without it, AI features show as "not configured")
   AI_PROVIDER: z.enum(['anthropic', 'gemini', 'none']).default('none'),
   ANTHROPIC_API_KEY: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),

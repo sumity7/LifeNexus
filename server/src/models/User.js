@@ -17,6 +17,8 @@ const userSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true, maxlength: 80 },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true, maxlength: 254 },
     passwordHash: { type: String, required: true, select: false },
+    // Day ("YYYY-MM-DD") the demo account's data was last generated — only ever set by the seeder.
+    demoSeededOn: { type: String, default: null },
     preferences: {
       theme: { type: String, enum: THEMES, default: 'system' },
       accent: { type: String, enum: ACCENTS, default: 'indigo' },
@@ -48,6 +50,7 @@ const userSchema = new mongoose.Schema(
       versionKey: false,
       transform: (_doc, ret) => {
         delete ret.passwordHash;
+        delete ret.demoSeededOn;
         return ret;
       },
     },

@@ -2,7 +2,7 @@
   "name": "lifeos",
   "version": "1.0.0",
   "private": true,
-  "description": "LifeOS — a personal life operating system",
+  "description": "LifeNexus — a personal life operating system",
   "workspaces": [
     "server",
     "client"

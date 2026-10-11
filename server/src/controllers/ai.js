@@ -128,7 +128,7 @@ export async function executeProposal(req, res) {
 export async function dailyBrief(req, res) {
   const today = req.valid.query.date ?? serverToday();
   const refresh = req.valid.query.refresh === 'true';
-  const data = await buildBrief(req.user.id, today);
+  const data = await buildBrief(req.user.id, today, { timeZone: req.valid.query.tz });
   const provider = getAIProvider();
   const preferences = await loadAIPreferences(req.user.id);
   const scopes = allowedScopes(preferences);

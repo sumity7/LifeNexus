@@ -1,4 +1,4 @@
-# LifeOS — Security
+# LifeNexus — Security
 
 ## Authentication & sessions
 - bcrypt (12 rounds); generic login errors with timing equalisation.

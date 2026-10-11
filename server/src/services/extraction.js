@@ -7,7 +7,7 @@ import { env } from '../config/env.js';
  *   extract({ buffer, mimeType }) → { text, metadata? }
  *
  * No extraction service is bundled. When EXTRACTION_PROVIDER is unset the
- * null provider reports "unavailable" and LifeOS never fabricates extracted
+ * null provider reports "unavailable" and LifeNexus never fabricates extracted
  * content. To add one, implement the two methods and register it below.
  */
 class NullExtractionProvider {

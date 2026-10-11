@@ -23,18 +23,25 @@ const advance = (date, frequency) => nextOccurrence(date, FREQ_TO_RECURRENCE[fre
  * rolls their next date forward. Idempotent and safe to call on every read.
  */
 export async function postDueRecurring(userId, today = serverToday()) {
-  const due = await RecurringTransaction.find({ user: userId, active: true, autoPost: true, nextDate: { $lte: today } });
+  const due = await RecurringTransaction.find({ user: userId, active: true, autoPost: true, nextDate: { $lte: today } }).lean();
   let posted = 0;
   for (const rule of due) {
-    for (let i = 0; rule.nextDate <= today && i < 36; i++) {
+    let date = rule.nextDate;
+    for (let i = 0; date <= today && i < 36; i++) {
+      const next = advance(date, rule.frequency);
+      if (!next) break;
+      // Claim the occurrence before posting it: several reads run this at once (the finance page
+      // loads transactions, the summary and the rules together), and only the request that moves
+      // nextDate forward may create the transaction — the others see no match and stop.
+      const claim = await RecurringTransaction.updateOne({ _id: rule._id, nextDate: date }, { $set: { nextDate: next } });
+      if (!claim.modifiedCount) break;
       await Transaction.create({
         user: userId, type: rule.type, amount: rule.amount, category: rule.category,
-        description: rule.description || rule.category, date: rule.nextDate, account: rule.account, recurring: rule._id,
+        description: rule.description || rule.category, date, account: rule.account, recurring: rule._id,
       });
-      rule.nextDate = advance(rule.nextDate, rule.frequency);
+      date = next;
       posted++;
     }
-    await rule.save();
   }
   return posted;
 }

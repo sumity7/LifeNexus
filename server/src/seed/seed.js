@@ -53,7 +53,11 @@ const money = (min, max) => Math.round(between(min, max) * 100) / 100;
 const at = (key, time = '12:00') => new Date(`${key}T${time}:00`);
 const endOfDay = (key) => new Date(`${key}T23:59:59.999`);
 
-export async function seedDemo() {
+/**
+ * `keepSessions` is for the automatic daily refresh (see demoLogin): visitors who are already
+ * exploring the demo keep their session instead of being signed out mid-visit.
+ */
+export async function seedDemo({ keepSessions = false } = {}) {
   rand = mulberry32(20260915);
   const today = serverToday();
   const d = (n) => addDays(today, n);
@@ -63,11 +67,12 @@ export async function seedDemo() {
   let user = await User.findOne({ email: DEMO_USER.email });
   if (user) {
     await deleteUserData(user._id);
-    await Session.deleteMany({ user: user._id });
+    if (!keepSessions) await Session.deleteMany({ user: user._id });
   } else {
     user = new User({ email: DEMO_USER.email, name: DEMO_USER.name });
   }
   user.name = DEMO_USER.name;
+  user.demoSeededOn = today;
   user.preferences = { theme: 'system', accent: 'indigo', currency: 'USD', weekStartsOn: 1, waterGoalMl: 2500, sleepGoalHours: 8 };
   await user.setPassword(DEMO_USER.password);
   await user.save();

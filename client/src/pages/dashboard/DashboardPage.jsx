@@ -23,7 +23,7 @@ import { useEditor } from '../../context/EditorContext';
 import { useToast } from '../../context/ToastContext';
 import { useReveal } from '../../hooks/useUtils';
 import { AI_WITHHELD_REASON, DASHBOARD_SECTIONS, DASHBOARD_WIDGETS, REMINDER_META } from '../../lib/constants';
-import { countdown, expandEvents, formatTimeHM, fromKey, greeting, occursOnDay, relativeDay, toKey, todayKey } from '../../lib/dates';
+import { countdown, expandEvents, formatTimeHM, fromKey, greeting, localTimeZone, occursOnDay, relativeDay, toKey, todayKey } from '../../lib/dates';
 import { formatCurrency, formatDuration, formatLiters, percent, pluralize } from '../../lib/format';
 import './dashboard.css';
 
@@ -217,7 +217,7 @@ function BriefWidget() {
       icon={Sparkles}
       subtitle={d ? (d.ai.enabled ? (d.narrative ? 'Written by your assistant from today’s data' : 'Computed from your data') : d.ai.configured ? 'AI brief is off in settings' : 'Computed from your data · connect an AI provider for a narrative') : undefined}
       className="widget"
-      actions={d?.ai.enabled && <IconButton icon={RefreshCw} size="sm" label="Regenerate brief" loading={refresh.isPending} onClick={() => refresh.mutate({ kind: 'brief', date: today }, { onError: (err) => toast.apiError(err, "Couldn't regenerate") })} />}
+      actions={d?.ai.enabled && <IconButton icon={RefreshCw} size="sm" label="Regenerate brief" loading={refresh.isPending} onClick={() => refresh.mutate({ kind: 'brief', date: todayKey(), tz: localTimeZone() }, { onError: (err) => toast.apiError(err, "Couldn't regenerate") })} />}
     >
       {brief.isPending ? <SkeletonList rows={3} /> : brief.isError ? <ErrorState compact error={brief.error} onRetry={() => brief.refetch()} /> : (
         <div className="brief">

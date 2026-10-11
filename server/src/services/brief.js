@@ -15,11 +15,25 @@ import { getPreferences } from '../controllers/helpers.js';
 const PRIORITY_RANK = { urgent: 0, high: 1, medium: 2, low: 3 };
 
 /**
+ * Clock time of an event as the user reads it ("10:00 AM"). Without a known timezone there is
+ * no correct answer — the server's own zone is usually not the user's — so the time is left out.
+ */
+function eventTime(date, timeZone) {
+  if (!timeZone) return null;
+  try {
+    return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone }).format(new Date(date));
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Deterministic daily brief computed from the user's real data. The AI (when
  * configured) only narrates this summary; the numbers never come from the model.
  */
-export async function buildBrief(userId, today) {
+export async function buildBrief(userId, today, { timeZone } = {}) {
   const prefs = await getPreferences(userId);
+  const zone = timeZone || prefs.timezone;
   const dayStart = new Date(`${today}T00:00:00`);
   const dayEnd = new Date(`${addDays(today, 1)}T00:00:00`);
   const [tasks, events, habitDocs, goalDocs, documents, reminders, routines, focus, finance] = await Promise.all([
@@ -82,7 +96,10 @@ export async function buildBrief(userId, today) {
   const summary = {
     date: today,
     tasks: { important: important.slice(0, 5).map((t) => t.title), dueToday: dueToday.length, overdue: overdue.length, overdueTitles: overdue.slice(0, 3).map((t) => t.title) },
-    events: todaysEvents.slice(0, 6).map((e) => ({ title: e.title, allDay: e.allDay, start: e.start })),
+    events: todaysEvents.slice(0, 6).map((e) => {
+      const time = e.allDay ? null : eventTime(e.start, zone);
+      return { title: e.title, allDay: e.allDay, ...(time && { time }) };
+    }),
     habits: { scheduled: habitsToday.length, done: habitsToday.length - habitsLeft.length, left: habitsLeft.slice(0, 4).map((h) => h.name) },
     routines: routines.filter((r) => r.today.scheduled).map((r) => ({ name: r.name, pct: r.today.pct })),
     goals: { deadlines: deadlines.map((g) => ({ title: g.title, deadline: g.deadline, progress: g.progress })), behind: behind.slice(0, 3).map((g) => ({ title: g.title, progress: g.progress, expected: g.elapsed })) },

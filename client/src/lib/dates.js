@@ -16,6 +16,8 @@ import {
 export const toKey = (date) => format(date, 'yyyy-MM-dd');
 export const fromKey = (key) => parseISO(key);
 export const todayKey = () => toKey(new Date());
+/** IANA zone of this browser ("Asia/Kolkata") — sent where the server must print a clock time. */
+export const localTimeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 export const addDaysKey = (key, n) => toKey(addDays(fromKey(key), n));
 export const daysBetween = (fromKeyValue, toKeyValue) => differenceInCalendarDays(fromKey(toKeyValue), fromKey(fromKeyValue));
 export const monthKey = (date = new Date()) => format(date, 'yyyy-MM');

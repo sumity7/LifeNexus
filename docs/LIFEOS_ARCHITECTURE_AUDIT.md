@@ -1,4 +1,4 @@
-# LifeOS — Architecture Audit (Phase 0)
+# LifeNexus — Architecture Audit (Phase 0)
 
 Audit date: 2026-09-15. Performed against the repository on disk before the "Personal Operating System" upgrade. Everything below was verified by reading the code, not inferred from screenshots.
 

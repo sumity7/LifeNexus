@@ -1,4 +1,4 @@
-# LifeOS — Roadmap
+# LifeNexus — Roadmap
 
 ## Shipped in this upgrade
 Projects, Documents vault (expiry reminders, signed previews), Journal, Focus, Activity log, Notifications, cross-module Links + Life Graph, universal search with filters, Quick Capture, AI assistant (provider abstraction, permissions, confirmed actions, conversations), Daily brief, Weekly review, note AI actions, finance accounts/net worth/recurring/subscriptions/savings goals, weight trend, routine-step ↔ habit links, settings for notifications/AI/sessions/export.

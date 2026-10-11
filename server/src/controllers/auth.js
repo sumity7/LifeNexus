@@ -9,6 +9,8 @@ import { AppError } from '../utils/AppError.js';
 import { deleteAccount as removeAccount, exportUserData } from '../services/account.js';
 import { getEmailProvider } from '../services/email/index.js';
 import { passwordResetEmail } from '../services/email/templates.js';
+import { seedDemo } from '../seed/seed.js';
+import { serverToday } from '../utils/dates.js';
 import { DASHBOARD_WIDGETS } from '../constants.js';
 
 const RESET_TOKEN_TTL_MS = 60 * 60_000; // 1 hour, single-use
@@ -76,16 +78,46 @@ export async function login(req, res) {
   res.json({ data: await startSession(req, res, user) });
 }
 
+const isDemoUser = (user) => env.DEMO_ENABLED && user.email === env.DEMO_EMAIL;
+
+let demoRefresh = null;
+
+/**
+ * The demo account is shared and public, so its data is regenerated on the first demo login of
+ * each day: seeded dates are relative to "today" and go stale otherwise, and one visitor's
+ * edits and AI chats must not be what the next visitor sees.
+ */
+async function refreshDemoIfStale(user) {
+  const today = serverToday();
+  if (user.demoSeededOn === today) return user;
+  demoRefresh ??= (async () => {
+    // Atomic claim, so two logins (or two server instances) never seed at the same time.
+    const claim = await User.updateOne({ _id: user._id, demoSeededOn: { $ne: today } }, { $set: { demoSeededOn: today } });
+    if (!claim.modifiedCount) return;
+    try {
+      await seedDemo({ keepSessions: true });
+    } catch (err) {
+      // Release the claim so the next login retries; this login still succeeds with what's there.
+      await User.updateOne({ _id: user._id }, { $set: { demoSeededOn: null } });
+      if (!env.isTest) console.error('Failed to refresh demo data:', err.message);
+    }
+  })().finally(() => {
+    demoRefresh = null;
+  });
+  await demoRefresh;
+  return User.findById(user._id);
+}
+
 /**
  * "Explore the demo account" — issues a real session for the public demo user without the
  * client ever sending or holding its password (unlike a normal login). Never available unless
- * DEMO_ENABLED is set and that account has actually been seeded (`npm run seed`).
+ * DEMO_ENABLED is set and that account already exists (`npm run seed`).
  */
 export async function demoLogin(req, res) {
   if (!env.DEMO_ENABLED) throw new AppError(404, 'The demo account is not available', { code: 'DEMO_DISABLED' });
   const user = await User.findOne({ email: env.DEMO_EMAIL });
   if (!user) throw new AppError(404, 'The demo account is not available right now', { code: 'DEMO_NOT_SEEDED' });
-  res.json({ data: await startSession(req, res, user) });
+  res.json({ data: await startSession(req, res, await refreshDemoIfStale(user)) });
 }
 
 function logRefreshFailure(reason, req) {
@@ -184,6 +216,7 @@ export async function updateMe(req, res) {
 export async function changePassword(req, res) {
   const { currentPassword, newPassword } = req.valid.body;
   const user = await User.findById(req.user.id).select('+passwordHash');
+  if (isDemoUser(user)) throw new AppError(403, "The demo account's password can't be changed", { code: 'DEMO_READONLY' });
   if (!(await user.verifyPassword(currentPassword))) {
     throw new AppError(400, 'Current password is incorrect', {
       details: [{ path: 'currentPassword', message: 'Current password is incorrect' }],
@@ -272,6 +305,7 @@ export async function exportData(req, res) {
 
 export async function deleteAccount(req, res) {
   const user = await User.findById(req.user.id).select('+passwordHash');
+  if (isDemoUser(user)) throw new AppError(403, "The demo account can't be deleted", { code: 'DEMO_READONLY' });
   if (!(await user.verifyPassword(req.valid.body.password))) {
     throw new AppError(400, 'Password is incorrect', { details: [{ path: 'password', message: 'Password is incorrect' }] });
   }

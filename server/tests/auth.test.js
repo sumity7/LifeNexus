@@ -1,10 +1,13 @@
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import path from 'node:path';
 import jwt from 'jsonwebtoken';
 import request from 'supertest';
 import { createUser, useTestApp } from './helpers.js';
 
+// The demo login regenerates the demo account's sample documents; keep those files out of ./uploads.
+process.env.STORAGE_DIR = path.join(process.cwd(), 'uploads-test');
 const ctx = useTestApp('auth');
 
 const refreshCookie = (res) => res.headers['set-cookie']?.find((c) => c.startsWith('lifeos_rt='));
@@ -198,6 +201,50 @@ describe('demo login (POST /api/auth/demo)', () => {
   it('never requires or reads a password from the request body', async () => {
     const res = await request(ctx.app).post('/api/auth/demo').send({ password: 'this is ignored, not even validated' });
     assert.equal(res.status, 200, 'a garbage/irrelevant body is simply ignored, not rejected');
+  });
+
+  it("regenerates the demo data on the first demo login of each day, so one visitor's changes never greet the next", async () => {
+    const { User } = await import('../src/models/User.js');
+    const { Task } = await import('../src/models/Task.js');
+    const makeStale = () => User.updateOne({ email: 'demo@lifeos.app' }, { $set: { demoSeededOn: '2000-01-01' } });
+    const demo = () => request(ctx.app).post('/api/auth/demo').send({});
+    const authed = (res) => ({ Authorization: `Bearer ${res.body.data.accessToken}` });
+
+    const visitor = request.agent(ctx.app);
+    const first = await visitor.post('/api/auth/demo').send({});
+    assert.equal(first.body.data.user.demoSeededOn, undefined, 'the bookkeeping field is never sent to the client');
+    await request(ctx.app).post('/api/tasks').set(authed(first)).send({ title: 'Left behind by a previous visitor' });
+    const titles = async (res) => (await request(ctx.app).get('/api/tasks').set(authed(res))).body.data.map((t) => t.title);
+
+    const sameDay = await demo();
+    assert.ok((await titles(sameDay)).includes('Left behind by a previous visitor'), 'no regeneration twice on the same day');
+
+    await makeStale();
+    const [a, b] = await Promise.all([demo(), demo()]);
+    assert.equal(a.status, 200);
+    assert.equal(b.status, 200);
+    const fresh = await titles(a);
+    assert.ok(fresh.length > 0, 'the demo is populated');
+    assert.ok(!fresh.includes('Left behind by a previous visitor'), "the previous visitor's data is gone");
+    const demoUser = await User.findOne({ email: 'demo@lifeos.app' });
+    const count = await Task.countDocuments({ user: demoUser._id });
+
+    await makeStale();
+    await demo();
+    assert.equal(await Task.countDocuments({ user: demoUser._id }), count, 'overlapping logins seed once, not twice');
+    assert.equal((await visitor.post('/api/auth/refresh')).status, 200, 'a visitor already exploring the demo is not signed out by the refresh');
+  });
+
+  it('never lets a visitor lock everyone else out of the shared demo account', async () => {
+    const res = await request(ctx.app).post('/api/auth/demo').send({});
+    const headers = { Authorization: `Bearer ${res.body.data.accessToken}` };
+    const password = await request(ctx.app).post('/api/auth/change-password').set(headers).send({ currentPassword: 'Demo1234!', newPassword: 'Hijacked12345' });
+    assert.equal(password.status, 403);
+    assert.equal(password.body.error.code, 'DEMO_READONLY');
+    const removed = await request(ctx.app).delete('/api/auth/me').set(headers).send({ password: 'Demo1234!' });
+    assert.equal(removed.status, 403);
+    assert.equal(removed.body.error.code, 'DEMO_READONLY');
+    assert.equal((await request(ctx.app).post('/api/auth/demo').send({})).status, 200, 'the demo still works afterwards');
   });
 });
 

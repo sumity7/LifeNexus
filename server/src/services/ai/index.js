@@ -138,7 +138,7 @@ export async function chat(userId, { conversationId, message, mode: explicitMode
   if (onlyDenied || (anchorBlocked && !used.length)) {
     // Deterministic, honest answer: nothing is sent to the model.
     reply = permissionReply([...new Set([...(anchorBlocked ? [anchorScope] : []), ...denied])]);
-    providerName = 'lifevexa';
+    providerName = 'lifenexus';
     model = null;
   } else {
     const system = buildSystem({ mode, today, blocks, denied, preferences, message });

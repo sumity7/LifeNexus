@@ -1,4 +1,4 @@
-# LifeOS — AI Architecture
+# LifeNexus — AI Architecture
 
 The AI assistant is optional, additive and fail-safe: every other module works fully with
 `AI_PROVIDER=none`. When configured, the AI **never** mutates the database directly — it can
