@@ -199,7 +199,9 @@ function BriefWidget() {
             {d.counts.expiring > 0 && <span className="brief__stat is-warn"><FileText size={12} aria-hidden="true" /><strong>{d.counts.expiring}</strong> document{d.counts.expiring === 1 ? '' : 's'} expiring</span>}
             {d.summary.goals.behind.length > 0 && <span className="brief__stat is-warn"><AlertTriangle size={12} aria-hidden="true" />{d.summary.goals.behind[0].title} is behind schedule</span>}
           </div>
-          {d.narrative ? <Markdown>{d.narrative}</Markdown> : d.narrativeWithheld ? <p className="text-xs muted">{AI_WITHHELD_REASON[d.narrativeWithheld] ?? AI_WITHHELD_REASON.error}</p> : null}
+          {d.narrative ? <Markdown>{d.narrative}</Markdown> : brief.narrativeLoading ? (
+            <div className="stack" style={{ gap: 6 }} role="status" aria-label="Writing your brief"><Skeleton /><Skeleton width="62%" /></div>
+          ) : d.narrativeWithheld ? <p className="text-xs muted">{AI_WITHHELD_REASON[d.narrativeWithheld] ?? AI_WITHHELD_REASON.error}</p> : null}
           {d.suggestions.length > 0 && (
             <div>
               <p className="text-2xs muted weight-semibold" style={{ textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Suggested for today</p>
@@ -214,7 +216,7 @@ function BriefWidget() {
               </div>
             </div>
           )}
-          {!d.suggestions.length && !d.narrative && !d.narrativeWithheld && <p className="text-sm muted">Nothing pressing today. Add tasks, habits or goals to get suggestions.</p>}
+          {!d.suggestions.length && !d.narrative && !d.narrativeWithheld && !brief.narrativeLoading && <p className="text-sm muted">Nothing pressing today. Add tasks, habits or goals to get suggestions.</p>}
         </div>
       )}
     </Card>

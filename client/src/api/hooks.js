@@ -351,10 +351,26 @@ export const useDeleteSavingsGoal = () => useApiMutation((id) => api.del(`/finan
 /* ───────── AI ───────── */
 
 export const useAIStatus = () => useQuery({ queryKey: ['ai', 'status'], queryFn: ({ signal }) => api.get('/ai/status', undefined, { signal }), staleTime: 5 * 60_000 });
+/**
+ * Brief and review load in two steps so the page never waits on the model: the computed numbers
+ * come back at once (with the AI text if it is already stored), and only when the text still has
+ * to be written does a second request fetch it. `narrativeLoading` is true in between.
+ */
+function useWithNarrative(queryKey, path, params, options) {
+  const ready = useQuery({ queryKey: [...queryKey, 'cached'], queryFn: ({ signal }) => api.get(path, { ...params, narrative: 'cached' }, { signal }), ...options });
+  const written = useQuery({ queryKey, queryFn: ({ signal }) => api.get(path, params, { signal }), enabled: !!ready.data?.narrativePending, ...options });
+  const useWritten = !!written.data && !written.isPlaceholderData && written.dataUpdatedAt >= ready.dataUpdatedAt;
+  return {
+    ...ready,
+    data: useWritten ? written.data : ready.data,
+    narrativeLoading: !!ready.data?.narrativePending && !ready.isPlaceholderData && !useWritten && !written.isError,
+  };
+}
+
 export const useDailyBrief = (options = {}) =>
-  useQuery({ queryKey: ['ai', 'brief', todayKey()], queryFn: ({ signal }) => api.get('/ai/brief', { date: todayKey(), tz: localTimeZone() }, { signal }), staleTime: 10 * 60_000, ...options });
+  useWithNarrative(['ai', 'brief', todayKey()], '/ai/brief', { date: todayKey(), tz: localTimeZone() }, { staleTime: 10 * 60_000, ...options });
 export const useWeeklyReview = (week) =>
-  useQuery({ queryKey: ['ai', 'review', week ?? 'current'], queryFn: ({ signal }) => api.get('/ai/review', { week }, { signal }), placeholderData: keepPreviousData });
+  useWithNarrative(['ai', 'review', week ?? 'current'], '/ai/review', { week }, { placeholderData: keepPreviousData });
 export const useRefreshInsight = () =>
   useApiMutation(({ kind, ...params }) => api.get(`/ai/${kind}`, { ...params, refresh: 'true' }), { invalidate: [['ai']] });
 export const useConversations = () => useQuery({ queryKey: ['ai', 'conversations'], queryFn: ({ signal }) => api.get('/ai/conversations', undefined, { signal }) });

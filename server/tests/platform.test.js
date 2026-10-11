@@ -200,6 +200,8 @@ describe('finance extensions', () => {
     assert.ok(txs.body.data.length >= 2, 'due recurring transactions are posted');
     const postedDates = txs.body.data.filter((t) => String(t.recurring) === rule.body.data._id).map((t) => t.date);
     assert.equal(new Set(postedDates).size, postedDates.length, 'each due occurrence is posted exactly once, even when requests overlap');
+    const bankAfter = (await u.get('/api/finance/accounts')).body.data.find((a) => a.name === 'Bank').balance;
+    assert.equal(bankAfter, 900 + 3000 * postedDates.length, 'a posted recurring transaction moves its account balance like a manual one');
     const rules = await u.get('/api/finance/recurring');
     assert.ok(rules.body.data[0].nextDate > TODAY);
 

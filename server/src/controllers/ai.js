@@ -128,6 +128,8 @@ export async function executeProposal(req, res) {
 export async function dailyBrief(req, res) {
   const today = req.valid.query.date ?? serverToday();
   const refresh = req.valid.query.refresh === 'true';
+  // The page asks twice: first for what is ready now, then (only if needed) for the model's text.
+  const cachedOnly = req.valid.query.narrative === 'cached';
   const data = await buildBrief(req.user.id, today, { timeZone: req.valid.query.tz });
   const provider = getAIProvider();
   const preferences = await loadAIPreferences(req.user.id);
@@ -136,12 +138,15 @@ export async function dailyBrief(req, res) {
 
   let narrative = null;
   let narrativeWithheld = null;
+  let narrativePending = false;
   if (aiOn) {
     const facts = briefFactsForAI(data.summary, scopes);
     const factsHash = hashFacts(facts);
     const existing = refresh ? null : await AIInsight.findOne({ user: req.user.id, kind: 'daily_brief', period: today, module: null }).lean();
     if (existing && existing.factsHash === factsHash) {
       narrative = existing.content;
+    } else if (cachedOnly) {
+      narrativePending = true;
     } else {
       try {
         const result = await generateNarrative(provider, { system: BRIEF_SYSTEM, facts, instruction: "Write today's brief from these facts." });
@@ -161,7 +166,7 @@ export async function dailyBrief(req, res) {
       }
     }
   }
-  res.json({ data: { ...data, narrative, narrativeWithheld, ai: { configured: provider.available, enabled: aiOn } } });
+  res.json({ data: { ...data, narrative, narrativeWithheld, narrativePending, ai: { configured: provider.available, enabled: aiOn } } });
 }
 
 /* ───── Weekly review ───── */
@@ -171,6 +176,7 @@ export async function weeklyReview(req, res) {
   const preferences = await loadAIPreferences(req.user.id);
   const weekStart = req.valid.query.week ?? startOfWeek(today, preferences.weekStartsOn ?? 1);
   const refresh = req.valid.query.refresh === 'true';
+  const cachedOnly = req.valid.query.narrative === 'cached';
   const data = await buildWeeklyReview(req.user.id, weekStart, today);
   const provider = getAIProvider();
   const scopes = allowedScopes(preferences);
@@ -178,6 +184,7 @@ export async function weeklyReview(req, res) {
 
   let narrative = null;
   let narrativeWithheld = null;
+  let narrativePending = false;
   if (aiOn) {
     const facts = reviewFactsForAI(data, scopes);
     const factsHash = hashFacts(facts);
@@ -187,6 +194,8 @@ export async function weeklyReview(req, res) {
     const fresh = existing && existing.factsHash === factsHash && (weekOver || existing.updatedAt > new Date(Date.now() - 6 * 3600_000));
     if (fresh) {
       narrative = existing.content;
+    } else if (cachedOnly) {
+      narrativePending = true;
     } else {
       try {
         const result = await generateNarrative(provider, {
@@ -211,7 +220,7 @@ export async function weeklyReview(req, res) {
       }
     }
   }
-  res.json({ data: { ...data, narrative, narrativeWithheld, ai: { configured: provider.available, enabled: aiOn } } });
+  res.json({ data: { ...data, narrative, narrativeWithheld, narrativePending, ai: { configured: provider.available, enabled: aiOn } } });
 }
 
 /* ───── Note actions ───── */

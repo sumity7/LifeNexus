@@ -35,10 +35,11 @@ export async function postDueRecurring(userId, today = serverToday()) {
       // nextDate forward may create the transaction — the others see no match and stop.
       const claim = await RecurringTransaction.updateOne({ _id: rule._id, nextDate: date }, { $set: { nextDate: next } });
       if (!claim.modifiedCount) break;
-      await Transaction.create({
+      const tx = await Transaction.create({
         user: userId, type: rule.type, amount: rule.amount, category: rule.category,
         description: rule.description || rule.category, date, account: rule.account, recurring: rule._id,
       });
+      await applyAccountDelta(userId, tx, +1);
       date = next;
       posted++;
     }

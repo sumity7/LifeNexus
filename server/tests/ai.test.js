@@ -667,6 +667,34 @@ describe('daily brief and weekly review — database computes facts, AI only nar
     assert.ok(third.body.data.summary.tasks.important.length >= 2);
   });
 
+  it('answers at once when asked for what is ready, and never calls the model on that path', async () => {
+    let calls = 0;
+    setAIProvider({
+      name: 'fake', model: 'fake-1', available: true,
+      async generate() { calls++; return { text: 'A steady day.', usage: {} }; },
+      async structured() { return { data: { reply: 'ok', actions: [] }, usage: {} }; },
+    });
+    const u = await createUser(ctx.app);
+    for (const path of [`/api/ai/brief?date=${TODAY}`, '/api/ai/review?']) {
+      calls = 0;
+      const ready = await u.get(`${path}&narrative=cached`);
+      assert.equal(ready.status, 200);
+      assert.equal(ready.body.data.narrative, null);
+      assert.equal(ready.body.data.narrativePending, true, 'tells the page the text still has to be written');
+      assert.equal(calls, 0, 'the fast path never waits on the model');
+
+      const written = await u.get(path);
+      assert.equal(written.body.data.narrative, 'A steady day.');
+      assert.equal(written.body.data.narrativePending, false);
+      assert.equal(calls, 1);
+
+      const again = await u.get(`${path}&narrative=cached`);
+      assert.equal(again.body.data.narrative, 'A steady day.', 'once written, the fast path returns it');
+      assert.equal(again.body.data.narrativePending, false);
+      assert.equal(calls, 1);
+    }
+  });
+
   it('withholds the narrative rather than showing invented statistics', async () => {
     setAIProvider({
       name: 'fake', model: 'fake-1', available: true,

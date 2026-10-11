@@ -61,7 +61,8 @@ for (const dir of watchDirs) {
     if (!name) return;
     const file = path.join(dir, name);
     const next = hashFile(file);
-    if (next === hashes.get(file)) return; // metadata-only event
+    // Unreadable and never seen before = a folder (or a file already gone): nothing changed.
+    if (next === (hashes.get(file) ?? null)) return; // metadata-only event
     hashes.set(file, next);
     restart(file);
   });

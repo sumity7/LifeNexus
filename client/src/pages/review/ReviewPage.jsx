@@ -60,7 +60,11 @@ export default function ReviewPage() {
             subtitle={d.ai.configured ? (d.ai.enabled ? 'Wins, problems and priorities — grounded in the numbers below' : 'AI is turned off in settings') : 'Configure an AI provider to generate the narrative'}
             actions={d.ai.enabled && <Button size="sm" variant="ghost" icon={RefreshCw} loading={refresh.isPending} onClick={() => refresh.mutate({ kind: 'review', week }, { onError: (err) => toast.apiError(err, "Couldn't regenerate") })}>Regenerate</Button>}
           >
-            {d.narrative ? <Markdown>{d.narrative}</Markdown> : d.narrativeWithheld ? (
+            {d.narrative ? <Markdown>{d.narrative}</Markdown> : review.narrativeLoading ? (
+              <div className="stack" style={{ gap: 8 }} role="status" aria-label="Writing your review">
+                <Skeleton width="18%" /><Skeleton /><Skeleton width="84%" /><Skeleton width="18%" style={{ marginTop: 8 }} /><Skeleton width="92%" /><Skeleton width="70%" />
+              </div>
+            ) : d.narrativeWithheld ? (
               <EmptyState compact icon={ClipboardCheck} title="Narrative withheld" description={AI_WITHHELD_REASON[d.narrativeWithheld] ?? AI_WITHHELD_REASON.error} />
             ) : (
               <EmptyState compact icon={ClipboardCheck} title={d.ai.configured ? 'No narrative yet' : 'Numbers only'} description={d.ai.configured ? 'Regenerate to write the review from this week’s data.' : 'The metrics below are computed from your data; the AI narrative needs a provider key on the server.'} />
