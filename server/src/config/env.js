@@ -1,6 +1,12 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
+// z.coerce.boolean() turns every non-empty string into true — including "false" — so a flag
+// could never be switched off from the environment. An empty value falls back to the default.
+const FALSY = ['false', '0', 'no', 'off'];
+const flag = (fallback) =>
+  z.preprocess((v) => (typeof v !== 'string' ? v : v.trim() === '' ? undefined : !FALSY.includes(v.trim().toLowerCase())), z.boolean().default(fallback));
+
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(5000),
@@ -10,13 +16,13 @@ const schema = z.object({
     .min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
   JWT_ACCESS_TTL: z.string().default('15m'),
   REFRESH_TOKEN_DAYS: z.coerce.number().int().positive().max(90).default(7),
-  CLIENT_ORIGIN: z.string().default('http://localhost:5173'),
+  CLIENT_ORIGIN: z.string().default('http://localhost:5180'),
   TRUST_PROXY: z.coerce.number().int().min(0).default(0),
 
   // Public "Explore the demo account" login (POST /api/auth/demo) — issues a real session for
   // this account without the client ever sending or holding its password. Set DEMO_ENABLED=false
   // to turn the button/endpoint off entirely (e.g. a deploy with no demo data seeded).
-  DEMO_ENABLED: z.coerce.boolean().default(true),
+  DEMO_ENABLED: flag(true),
   DEMO_EMAIL: z.string().default('demo@lifeos.app'),
 
   // Auto-injected by Render on every deploy (the service's own public URL) — used only to keep
@@ -35,7 +41,7 @@ const schema = z.object({
   // Only needed for non-AWS providers (R2/MinIO/Spaces/B2) — their S3-compatible endpoint URL.
   S3_ENDPOINT: z.string().optional(),
   // Needed for most non-AWS providers (path-style URLs instead of virtual-hosted-style).
-  S3_FORCE_PATH_STYLE: z.coerce.boolean().default(false),
+  S3_FORCE_PATH_STYLE: flag(false),
   EXTRACTION_PROVIDER: z.string().default(''),
 
   // Email (optional — LifeNexus works fully without it; only password-reset delivery needs it).
@@ -45,7 +51,7 @@ const schema = z.object({
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().positive().default(587),
   // true for port 465 (implicit TLS); false for 587/25 (STARTTLS, upgraded automatically).
-  SMTP_SECURE: z.coerce.boolean().default(false),
+  SMTP_SECURE: flag(false),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   // "LifeNexus <noreply@yourdomain.com>" — required for EMAIL_PROVIDER=smtp.

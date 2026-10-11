@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5173,
+    port: 5180,
     proxy: {
       // Same-origin API in development so the httpOnly refresh cookie just works.
       '/api': { target: 'http://localhost:5000', changeOrigin: true },

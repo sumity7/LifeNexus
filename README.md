@@ -10,7 +10,7 @@ One connected system for tasks, projects, calendar, goals, reminders, habits, ro
 npm install                          # installs both workspaces
 cp server/.env.example server/.env   # set JWT_ACCESS_SECRET (and MONGODB_URI if not local)
 npm run seed                         # demo account with realistic, connected data
-npm run dev                          # API on :5000, web on :5173 (proxied /api)
+npm run dev                          # API on :5000, web on :5180 (proxied /api)
 ```
 
 Sign in with **demo@lifeos.app / Demo1234!**.

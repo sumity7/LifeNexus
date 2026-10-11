@@ -1,5 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { addDays, addMonths, isDateKey, nextOccurrence, startOfWeek } from '../src/utils/dates.js';
 import { computeHabitStats } from '../src/services/habits.js';
 import { htmlToText, sanitizeNoteHtml } from '../src/utils/html.js';
@@ -63,5 +64,22 @@ describe('note sanitization', () => {
     assert.ok(!clean.includes('javascript:'));
     assert.ok(clean.includes('<strong>there</strong>'));
     assert.equal(htmlToText('<p>A &amp; B</p><p>C</p>'), 'A & B C');
+  });
+});
+
+describe('environment flags', () => {
+  // env.js reads process.env once at import, so each case is checked in its own process.
+  const read = (name, value) => {
+    const env = { ...process.env, NODE_ENV: 'test', JWT_ACCESS_SECRET: 'test-access-secret-for-automated-tests-only-0123456789', [name]: value };
+    const script = `const { env } = await import('./src/config/env.js'); console.log(env.${name});`;
+    return execFileSync(process.execPath, ['--input-type=module', '-e', script], { env, encoding: 'utf8' }).trim();
+  };
+
+  it('lets a flag be switched off from the environment', () => {
+    for (const off of ['false', 'FALSE', '0', 'no', 'off']) assert.equal(read('DEMO_ENABLED', off), 'false', `DEMO_ENABLED=${off}`);
+    for (const on of ['true', '1', 'yes']) assert.equal(read('DEMO_ENABLED', on), 'true', `DEMO_ENABLED=${on}`);
+    assert.equal(read('DEMO_ENABLED', ''), 'true', 'empty keeps the default');
+    assert.equal(read('SMTP_SECURE', 'false'), 'false');
+    assert.equal(read('SMTP_SECURE', ''), 'false', 'empty keeps the default');
   });
 });
