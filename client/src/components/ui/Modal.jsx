@@ -1,8 +1,9 @@
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import clsx from 'clsx';
 import { X } from 'lucide-react';
 import { IconButton } from './Button';
+import { animateOut } from '../../lib/motion';
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]), [contenteditable="true"]';
@@ -21,6 +22,7 @@ function unlockScroll() {
  */
 export function Modal({ open, onClose, title, description, children, footer, size = 'md', className, overlayClassName, hideClose, bare }) {
   const dialogRef = useRef(null);
+  const overlayRef = useRef(null);
   const onCloseRef = useRef(onClose);
   const titleId = useId();
   const descriptionId = useId();
@@ -66,10 +68,17 @@ export function Modal({ open, onClose, title, description, children, footer, siz
     };
   }, [open]);
 
+  useLayoutEffect(() => {
+    if (!open) return undefined;
+    const overlay = overlayRef.current;
+    return () => animateOut(overlay, document.body);
+  }, [open]);
+
   if (!open) return null;
 
   return createPortal(
     <div
+      ref={overlayRef}
       className={clsx('modal-overlay', overlayClassName)}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onCloseRef.current?.();

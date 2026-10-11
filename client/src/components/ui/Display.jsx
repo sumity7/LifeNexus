@@ -91,6 +91,7 @@ export function ProgressRing({ value = 0, size = 40, stroke = 4, color, children
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={circumference * (1 - pct / 100)}
+          style={{ '--ring-length': circumference }}
         />
       </svg>
       {children !== undefined && <span className="ring__label">{children}</span>}

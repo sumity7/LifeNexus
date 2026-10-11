@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Bell, CheckCheck, Inbox, X } from 'lucide-react';
 import { Button, EmptyState, ErrorState, IconButton, SkeletonList } from '../ui';
 import { useDeleteNotification, useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications } from '../../api/hooks';
+import { animateOut } from '../../lib/motion';
 
 const TYPE_EMOJI = { task: '✅', goal: '🎯', habit: '🔥', routine: '🔁', calendar: '📅', document: '📄', finance: '💳', ai: '✨', system: 'ℹ️' };
 
@@ -16,6 +17,7 @@ export function NotificationsButton() {
   const remove = useDeleteNotification();
   const navigate = useNavigate();
   const ref = useRef(null);
+  const panelRef = useRef(null);
   const unread = notifications.data?.meta?.unread ?? 0;
 
   useEffect(() => {
@@ -28,6 +30,13 @@ export function NotificationsButton() {
       document.removeEventListener('mousedown', onDown);
       window.removeEventListener('keydown', onKey);
     };
+  }, [open]);
+
+  useLayoutEffect(() => {
+    if (!open) return undefined;
+    const panel = panelRef.current;
+    const anchor = ref.current;
+    return () => animateOut(panel, anchor, 140);
   }, [open]);
 
   const openItem = (n) => {
@@ -43,7 +52,7 @@ export function NotificationsButton() {
         {unread > 0 && <span className="notif__badge">{unread > 9 ? '9+' : unread}</span>}
       </button>
       {open && (
-        <div className="notif__panel" role="dialog" aria-label="Notifications">
+        <div ref={panelRef} className="notif__panel" role="dialog" aria-label="Notifications">
           <div className="notif__head">
             <strong>Notifications</strong>
             <div className="row" style={{ gap: 2 }}>

@@ -40,7 +40,7 @@ export default function ProjectsPage() {
           { value: 'all', label: 'All' },
         ]}
       />
-      <div style={{ marginTop: 16 }}>
+      <div key={status} className="tab-panel" style={{ marginTop: 16 }}>
         {projects.isPending ? (
           <div className="goal-grid">{Array.from({ length: 3 }, (_, i) => <div key={i} className="card project-card"><Skeleton width="40%" /><Skeleton height={20} width="80%" /><Skeleton height={6} /></div>)}</div>
         ) : projects.isError && !projects.data ? (

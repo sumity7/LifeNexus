@@ -67,7 +67,7 @@ export default function GoalsPage() {
         ]}
       />
 
-      <div style={{ marginTop: 16 }}>
+      <div key={status} className="tab-panel" style={{ marginTop: 16 }}>
         {goals.isPending ? (
           <div className="goal-grid">
             {Array.from({ length: 3 }, (_, i) => (

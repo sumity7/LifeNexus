@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import clsx from 'clsx';
 import { MoreHorizontal } from 'lucide-react';
 import { IconButton } from './Button';
+import { animateOut } from '../../lib/motion';
 
 /**
  * Dropdown menu with full keyboard support.
@@ -35,24 +36,35 @@ export function Menu({ items, label = 'More actions', icon = MoreHorizontal, ali
     setPosition({ top: openUp ? rect.top - menuHeight - 4 : rect.bottom + 4, left });
   }, [open, align]);
 
+  useLayoutEffect(() => {
+    if (!open) return undefined;
+    const menu = menuRef.current;
+    return () => animateOut(menu, document.body, 140);
+  }, [open]);
+
   useEffect(() => {
     if (!open) return undefined;
     const onPointer = (e) => {
       if (!menuRef.current?.contains(e.target) && !triggerRef.current?.contains(e.target)) close(false);
     };
     const onScroll = (e) => {
-      if (!menuRef.current?.contains(e.target)) close(false);
+      // A resize event's target is the window, which `contains` rejects.
+      if (!(e.target instanceof Node) || !menuRef.current?.contains(e.target)) close(false);
     };
     document.addEventListener('mousedown', onPointer);
     window.addEventListener('resize', onScroll);
     window.addEventListener('scroll', onScroll, true);
-    menuRef.current?.focus();
     return () => {
       document.removeEventListener('mousedown', onPointer);
       window.removeEventListener('resize', onScroll);
       window.removeEventListener('scroll', onScroll, true);
     };
   }, [open, close]);
+
+  // Focus once the menu has a position: until then it is hidden, and a hidden element can't take focus.
+  useEffect(() => {
+    if (open && position) menuRef.current?.focus();
+  }, [open, position]);
 
   const select = (item) => {
     close();

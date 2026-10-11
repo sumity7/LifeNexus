@@ -5,7 +5,8 @@ import {
   Bell, CalendarDays, CalendarPlus, CheckSquare, Dumbbell, FileText, Flame, FolderKanban, LayoutDashboard, LogOut, Menu as MenuIcon, Moon,
   NotebookPen, PanelLeftClose, PanelLeftOpen, Plus, Search, Settings, Sparkles, Sun, Target, Wallet, Zap,
 } from 'lucide-react';
-import { Button, IconButton, Kbd, Menu, Spinner } from '../ui';
+import { Button, IconButton, Kbd, Menu } from '../ui';
+import { PageSkeleton } from './PageSkeleton';
 import { CommandPalette } from './CommandPalette';
 import { QuickCapture } from './QuickCapture';
 import { NotificationsButton } from './NotificationsPopover';
@@ -17,6 +18,7 @@ import { useEditor } from '../../context/EditorContext';
 import { useHotkey, useScrolled } from '../../hooks/useUtils';
 import { ALL_NAV_ITEMS, ASSISTANT_NAV, NAV_ITEMS, SETTINGS_NAV, isNavActive, navGroupFor } from '../../lib/constants';
 import { initials } from '../../lib/format';
+import { preloadOn } from '../../lib/pageLoaders';
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 export const MOD_KEY = isMac ? '⌘' : 'Ctrl';
@@ -86,7 +88,7 @@ export function AppShell() {
         <SectionTabs className="section-strip mobile-only" />
         <main id="main" tabIndex={-1} style={{ outline: 'none' }}>
           <ErrorBoundary key={location.pathname}>
-            <Suspense fallback={<div className="fullscreen-center" style={{ minHeight: '60vh' }}><Spinner size="lg" /></div>}>
+            <Suspense fallback={<PageSkeleton />}>
               <Outlet />
             </Suspense>
           </ErrorBoundary>
@@ -110,7 +112,7 @@ function SectionTabs({ className }) {
     <nav className={className} aria-label="Section pages">
       <div className="segmented">
         {tabs.map((tab) => (
-          <Link key={tab.to} to={tab.to} className="segmented__item" aria-current={isNavActive(tab, pathname) ? 'page' : undefined}>
+          <Link key={tab.to} to={tab.to} className="segmented__item" aria-current={isNavActive(tab, pathname) ? 'page' : undefined} {...preloadOn(tab.to)}>
             <tab.icon aria-hidden="true" />
             {tab.label}
           </Link>
@@ -163,6 +165,7 @@ function Sidebar({ collapsed, onToggleCollapse, open, onClose, onSearch }) {
               className={clsx('nav-link', item === activeGroup && 'active')}
               aria-current={item === activeGroup ? (item.tabs ? 'true' : 'page') : undefined}
               title={collapsed ? item.label : undefined}
+              {...preloadOn(item.to)}
             >
               <item.icon aria-hidden="true" />
               <span className="nav-label">{item.label}</span>
@@ -172,7 +175,7 @@ function Sidebar({ collapsed, onToggleCollapse, open, onClose, onSearch }) {
       </nav>
 
       <div className="sidebar__footer">
-        <NavLink to={SETTINGS_NAV.to} className="nav-link" title={collapsed ? 'Settings' : undefined}>
+        <NavLink to={SETTINGS_NAV.to} className="nav-link" title={collapsed ? 'Settings' : undefined} {...preloadOn(SETTINGS_NAV.to)}>
           <Settings aria-hidden="true" />
           <span className="nav-label">Settings</span>
         </NavLink>
@@ -231,6 +234,7 @@ function Topbar({ onMenu, onSearch }) {
         icon={ASSISTANT_NAV.icon}
         aria-current={isNavActive(ASSISTANT_NAV, location.pathname) ? 'page' : undefined}
         onClick={() => navigate(ASSISTANT_NAV.to)}
+        {...preloadOn(ASSISTANT_NAV.to)}
       >
         {ASSISTANT_NAV.label}
       </Button>
@@ -266,6 +270,9 @@ function Topbar({ onMenu, onSearch }) {
 }
 
 function MobileNav({ onMore }) {
+  const { pathname } = useLocation();
+  // A tab inside a group (e.g. Focus under Tasks) keeps its group's button lit.
+  const activeTo = isNavActive(ASSISTANT_NAV, pathname) ? ASSISTANT_NAV.to : navGroupFor(pathname)?.to;
   const items = [
     { to: '/', label: 'Home', icon: LayoutDashboard, end: true },
     { to: '/tasks', label: 'Tasks', icon: CheckSquare },
@@ -275,10 +282,10 @@ function MobileNav({ onMore }) {
   return (
     <nav className="mobile-nav" aria-label="Quick navigation">
       {items.map((item) => (
-        <NavLink key={item.to} to={item.to} end={item.end} className="mobile-nav__item">
+        <Link key={item.to} to={item.to} className={clsx('mobile-nav__item', item.to === activeTo && 'active')} aria-current={item.to === activeTo ? 'page' : undefined} {...preloadOn(item.to)}>
           <item.icon aria-hidden="true" />
           {item.label}
-        </NavLink>
+        </Link>
       ))}
       <button type="button" className="mobile-nav__item" onClick={onMore}>
         <MenuIcon aria-hidden="true" />

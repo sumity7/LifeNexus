@@ -43,7 +43,7 @@ export default function SettingsPage() {
     <div className="page" style={{ maxWidth: 820 }}>
       <PageHeader title="Settings" />
       <Tabs label="Settings sections" options={SETTINGS_TABS} value={tab} onChange={(value) => navigate({ search: `?tab=${value}` }, { replace: true })} className="mb" />
-      <div className="stack" style={{ gap: 16 }} role="tabpanel">
+      <div key={tab} className="stack tab-panel" style={{ gap: 16 }} role="tabpanel">
         {tab === 'profile' && <><ProfileCard /><AppearanceCard /></>}
         {tab === 'preferences' && <><PreferencesCard /><NotificationsCard /><ShortcutsCard /></>}
         {tab === 'ai' && <AICard />}

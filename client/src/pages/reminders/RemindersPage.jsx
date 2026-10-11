@@ -151,7 +151,7 @@ export default function RemindersPage() {
         ]}
       />
 
-      <Card flush style={{ marginTop: 16 }}>
+      <Card key={tab} flush className="tab-panel" style={{ marginTop: 16 }}>
         <QueryState
           query={query}
           loading={<SkeletonList rows={5} />}

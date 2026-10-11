@@ -169,7 +169,7 @@ export default function TasksPage() {
         {view !== 'completed' && <QuickAddTask defaults={quickAddDefaults} placeholder={view === 'today' ? 'Add a task for today…' : 'Add a task…'} />}
         <QueryState query={tasks} loading={<SkeletonList rows={6} />} isEmpty={(d) => !d?.length} empty={emptyState}>
           {() => (
-            <div style={{ opacity: tasks.isPlaceholderData ? 0.6 : 1, transition: 'opacity 150ms' }}>
+            <div key={view} className="tab-panel" style={{ opacity: tasks.isPlaceholderData ? 0.6 : 1, transition: 'opacity 150ms' }}>
               {groups.map((group) => (
                 <div key={group.id}>
                   {group.label && <SectionLabel count={group.tasks.length}>{group.label}</SectionLabel>}

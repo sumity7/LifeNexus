@@ -147,7 +147,7 @@
 .rank-row__value { font-variant-numeric: tabular-nums; font-weight: 500; }
 .rank-row__share { margin-left: 6px; color: var(--text-muted); font-weight: 400; }
 .rank-row__track { height: 8px; border-radius: 4px; background: var(--bg-subtle); overflow: hidden; }
-.rank-row__bar { height: 100%; border-radius: 0 4px 4px 0; background: var(--bar, var(--chart-1)); transition: width 0.6s var(--ease-out); }
+.rank-row__bar { height: 100%; border-radius: 0 4px 4px 0; background: var(--bar, var(--chart-1)); transition: width 0.6s var(--ease-out); transform-origin: left center; animation: grow-x 0.7s var(--ease-out); }
 
 .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
