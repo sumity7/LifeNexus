@@ -4,11 +4,10 @@ import { addDays, format, startOfDay } from 'date-fns';
 import clsx from 'clsx';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import {
-  AlertTriangle, ArrowDown, ArrowUp, ArrowUpRight, Bell, CalendarDays, CalendarPlus, Check, CheckSquare, Droplet, Dumbbell, FileText, Flame, Moon,
-  NotebookPen, Play, Plus, RefreshCw, Repeat, SlidersHorizontal, Sparkles, Target, Timer, TrendingUp, Wallet, Zap,
+  AlertTriangle, ArrowDown, ArrowUp, ArrowUpRight, Bell, CalendarDays, Check, CheckSquare, Droplet, FileText, Flame, Moon,
+  Play, Plus, RefreshCw, Repeat, SlidersHorizontal, Sparkles, Target, Timer, TrendingUp, Wallet,
 } from 'lucide-react';
 import { Markdown } from '../../components/Markdown';
-import { openQuickCapture } from '../../components/layout/AppShell';
 import {
   Badge, Button, Card, Checkbox, EmptyState, ErrorState, IconButton, Modal, ProgressBar, ProgressRing, SectionLabel, Skeleton, SkeletonList, Switch,
 } from '../../components/ui';
@@ -31,10 +30,12 @@ const SPANS = { brief: 12, focus: 7, schedule: 5, habits: 6, routines: 6, upcomi
 const FULL_WIDTH = new Set(['brief']);
 const MOODS = ['😞', '🙁', '😐', '🙂', '😄'];
 
+const defaultWidgets = () => Object.entries(DASHBOARD_WIDGETS).map(([id, meta]) => ({ id, visible: !!meta.default }));
+
 function normalizeWidgets(saved) {
   const list = (saved ?? []).filter((w) => DASHBOARD_WIDGETS[w.id]);
   const seen = new Set(list.map((w) => w.id));
-  return [...list, ...Object.keys(DASHBOARD_WIDGETS).filter((id) => !seen.has(id)).map((id) => ({ id, visible: true }))];
+  return [...list, ...defaultWidgets().filter((w) => !seen.has(w.id))];
 }
 
 /** Pairs widgets into 12-column rows; a lone widget spans the full row. */
@@ -55,12 +56,8 @@ function withSpans(ids) {
 export default function DashboardPage() {
   const { user } = useAuth();
   const dashboard = useDashboard();
-  const openEditor = useEditor();
-  const addWater = useAddWater();
-  const toast = useToast();
   const [customizing, setCustomizing] = useState(false);
   const [params, setParams] = useSearchParams();
-  const navigate = useNavigate();
   const today = todayKey();
 
   useEffect(() => {
@@ -87,24 +84,6 @@ export default function DashboardPage() {
       ].join(' · ')
     : null;
 
-  const logWater = () =>
-    addWater.mutate(
-      { deltaMl: 250 },
-      { onSuccess: (log) => toast.success('+250 ml water', { description: `${formatLiters(log.waterMl)} today` }), onError: (err) => toast.apiError(err, "Couldn't log water") },
-    );
-
-  const quickActions = [
-    { label: 'Quick capture', icon: Zap, run: openQuickCapture },
-    { label: 'New task', icon: CheckSquare, run: () => openEditor('task', { defaults: { dueDate: today } }) },
-    { label: 'New event', icon: CalendarPlus, run: () => openEditor('event') },
-    { label: 'Log expense', icon: Wallet, run: () => openEditor('transaction', { defaults: { type: 'expense' } }) },
-    { label: 'Write a note', icon: NotebookPen, run: () => openEditor('note') },
-    { label: '+250 ml water', icon: Droplet, run: logWater, loading: addWater.isPending },
-    { label: 'Log workout', icon: Dumbbell, run: () => openEditor('workout') },
-    { label: 'Add reminder', icon: Bell, run: () => openEditor('reminder') },
-    { label: 'Ask AI', icon: Sparkles, run: () => navigate('/ai') },
-  ];
-
   const widgetProps = { query: dashboard, data, occurrences, eventsQuery: events };
 
   return (
@@ -119,15 +98,6 @@ export default function DashboardPage() {
           <Button icon={SlidersHorizontal} onClick={() => setCustomizing(true)}>Customize</Button>
         </div>
       </header>
-
-      <div className="quick-actions" role="toolbar" aria-label="Quick actions">
-        {quickActions.map((a) => (
-          <button key={a.label} type="button" className="quick-action" onClick={a.run} disabled={a.loading}>
-            <span className="quick-action__icon"><a.icon aria-hidden="true" /></span>
-            {a.label}
-          </button>
-        ))}
-      </div>
 
       {DASHBOARD_SECTIONS.map((section) => {
         const ids = widgets.filter((w) => w.visible && DASHBOARD_WIDGETS[w.id].section === section.id).map((w) => w.id);
@@ -837,7 +807,7 @@ function CustomizeBody({ onClose, widgets }) {
       description="Choose which widgets appear and in what order."
       footer={
         <>
-          <Button variant="ghost" className="modal__footer-start" onClick={() => setList(Object.keys(DASHBOARD_WIDGETS).map((id) => ({ id, visible: true })))}>
+          <Button variant="ghost" className="modal__footer-start" onClick={() => setList(defaultWidgets())}>
             Reset to default
           </Button>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>

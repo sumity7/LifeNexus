@@ -89,3 +89,5 @@ export const DASHBOARD_WIDGETS = [
   'documents',
   'focusTime',
 ];
+// What a new account sees; every other widget is off until switched on in Customize.
+export const DASHBOARD_DEFAULT_WIDGETS = ['brief', 'focus', 'schedule', 'habits', 'goals'];

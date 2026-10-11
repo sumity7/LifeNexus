@@ -61,17 +61,7 @@
 .sidebar__search .kbd { margin-left: auto; }
 
 .sidebar__nav { flex: 1; margin: 0 -6px; padding: 0 6px; overflow-y: auto; overflow-x: hidden; }
-.nav-section { margin-top: 14px; }
-.nav-section__label {
-  height: 22px;
-  padding: 0 10px;
-  color: var(--text-faint);
-  font-size: var(--text-2xs);
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
+.nav-section { margin-top: 12px; }
 .nav-link {
   position: relative;
   display: flex;
@@ -116,7 +106,6 @@
 .app.is-collapsed .sidebar .sidebar__search span,
 .app.is-collapsed .sidebar .sidebar__search .kbd,
 .app.is-collapsed .sidebar .user-button > div { display: none; }
-.app.is-collapsed .sidebar .nav-section__label { visibility: hidden; height: 8px; }
 .app.is-collapsed .sidebar .nav-link,
 .app.is-collapsed .sidebar .sidebar__search { justify-content: center; padding: 0; }
 .app.is-collapsed .sidebar .sidebar__brand { flex-direction: column; height: auto; gap: 8px; }
@@ -146,6 +135,9 @@
 .topbar__crumb svg { width: 15px; height: 15px; }
 .topbar__spacer { flex: 1; }
 .topbar__menu { display: none; }
+.topbar .btn[aria-current='page'] { background: var(--surface-active); color: var(--text); }
+/* Section tabs on small screens: a strip under the top bar (on desktop they sit inside it). */
+.section-strip { padding: 10px 16px 0; }
 
 .page {
   width: 100%;

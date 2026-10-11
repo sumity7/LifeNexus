@@ -1,19 +1,19 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { format } from 'date-fns';
-import { Bar, BarChart, CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import {
-  Activity, AlertTriangle, BedDouble, CheckSquare, Flame, Lightbulb, PiggyBank, Repeat, Target, TrendingDown, TrendingUp,
-} from 'lucide-react';
-import { Card, EmptyState, ErrorState, PageHeader, ProgressBar, Segmented, Skeleton, StatTile } from '../../components/ui';
+import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { AlertTriangle, CheckSquare, Flame, Lightbulb, PiggyBank, Target, TrendingDown, TrendingUp } from 'lucide-react';
+import { Card, EmptyState, ErrorState, PageHeader, Segmented, Skeleton, StatTile } from '../../components/ui';
 import { ChartCard } from '../../components/ChartCard';
-import { RankList } from '../../components/RankList';
 import { BAR_PROPS, ChartLegend, ChartTooltip, LINE_PROPS, useChartTheme } from '../../components/charts';
 import { useAnalytics } from '../../api/hooks';
 import { useAuth } from '../../context/AuthContext';
 import { fromKey } from '../../lib/dates';
-import { formatCurrency, formatDuration } from '../../lib/format';
+import { formatCurrency } from '../../lib/format';
+
+// The page stays a summary: the per-module detail (cash flow, per-habit and per-goal progress,
+// sleep) lives on Finance, Habits, Goals and Health.
+const MAX_INSIGHTS = 4;
 
 const TONES = {
   positive: { icon: TrendingUp, label: 'Positive', className: 'text-success' },
@@ -34,7 +34,6 @@ export default function AnalyticsPage() {
     () => (d?.daily ?? []).map((row) => ({ ...row, label: format(fromKey(row.date), days <= 14 ? 'EEE d' : 'MMM d') })),
     [d, days],
   );
-  const trend = useMemo(() => (d?.finance.trend ?? []).map((t) => ({ ...t, label: format(fromKey(`${t.month}-01`), 'MMM') })), [d]);
 
   const axis = {
     x: { dataKey: 'label', tickLine: false, axisLine: { stroke: theme.chartBaseline }, tick: theme.axisTick, interval: 'preserveStartEnd', minTickGap: 18 },
@@ -66,7 +65,7 @@ export default function AnalyticsPage() {
       <div className="page page--wide">
         {header}
         <div className="stat-grid" style={{ marginBottom: 16 }}>
-          {Array.from({ length: 8 }, (_, i) => <div key={i} className="card stat"><Skeleton width="50%" /><Skeleton height={24} width="40%" style={{ marginTop: 10 }} /></div>)}
+          {Array.from({ length: 4 }, (_, i) => <div key={i} className="card stat"><Skeleton width="50%" /><Skeleton height={24} width="40%" style={{ marginTop: 10 }} /></div>)}
         </div>
         <div className="grid-2">{Array.from({ length: 4 }, (_, i) => <Card key={i}><Skeleton height={220} /></Card>)}</div>
       </div>
@@ -92,19 +91,15 @@ export default function AnalyticsPage() {
             </span>
           )}
         />
-        <StatTile icon={Target} label="On-time completion" value={pct(d.summary.taskCompletionRate)} meta={`${d.tasks.missed} missed · ${d.tasks.overdue} overdue now`} />
         <StatTile icon={Flame} label="Habit consistency" value={pct(d.summary.habitConsistency)} meta="Daily habits done when scheduled" />
-        <StatTile icon={Repeat} label="Routine consistency" value={pct(d.summary.routineConsistency)} meta="Average steps completed" />
         <StatTile icon={Target} label="Avg. goal progress" value={pct(d.summary.goalsAvgProgress)} meta={`${d.goals.active} active · ${d.goals.milestonesCompleted} milestones reached`} />
         <StatTile icon={PiggyBank} label="Net savings" value={<span className={clsx(d.summary.net < 0 && 'text-danger')}>{money(d.summary.net, { signed: true })}</span>} meta={d.finance.savingsRate !== null ? `${d.finance.savingsRate}% of income saved` : 'No income recorded'} />
-        <StatTile icon={BedDouble} label="Average sleep" value={d.summary.avgSleep !== null ? `${d.summary.avgSleep}h` : '—'} meta={`Goal ${d.health.goals.sleepGoalHours}h`} />
-        <StatTile icon={Activity} label="Workout time" value={formatDuration(d.summary.workoutMinutes)} meta={`${d.health.workouts.count} sessions`} />
       </div>
 
       <Card title="Insights" icon={Lightbulb} style={{ marginBottom: 16 }}>
         {d.insights.length ? (
           <ul className="insights">
-            {d.insights.map((insight, i) => {
+            {d.insights.slice(0, MAX_INSIGHTS).map((insight, i) => {
               const tone = TONES[insight.tone] ?? TONES.info;
               return (
                 <li key={i} className="insight">
@@ -166,11 +161,10 @@ export default function AnalyticsPage() {
         </ChartCard>
       </div>
 
-      <div className="grid-3" style={{ marginBottom: 16 }}>
+      <div className="grid-2">
         <ChartCard
           title="Most productive days"
           subtitle="Tasks completed by weekday"
-          height={200}
           table={{ columns: [{ key: 'day', label: 'Weekday' }, { key: 'count', label: 'Completed', numeric: true }], rows: d.tasks.byWeekday }}
         >
           <ResponsiveContainer width="100%" height="100%">
@@ -184,85 +178,6 @@ export default function AnalyticsPage() {
           </ResponsiveContainer>
         </ChartCard>
 
-        <Card title="Habit consistency" subtitle="Per habit in this period">
-          {d.habits.perHabit.length ? (
-            <RankList items={d.habits.perHabit.map((h) => ({ key: h._id, label: `${h.icon} ${h.name}`, value: h.rate, color: h.color }))} formatValue={(v) => `${v}%`} showShare={false} max={100} />
-          ) : (
-            <EmptyState compact icon={Flame} title="No habits yet" action={<Link to="/habits" className="text-accent text-sm">Create a habit</Link>} />
-          )}
-        </Card>
-
-        <Card title="Goal progress" subtitle={`${d.goals.active} active · ${d.goals.completed} completed`}>
-          {d.goals.list.length ? (
-            <div className="stack" style={{ gap: 12 }}>
-              {d.goals.list.map((g) => (
-                <Link key={g._id} to={`/goals/${g._id}`} className="stack stack--sm" style={{ gap: 5 }}>
-                  <span className="row row--between text-sm">
-                    <span className="truncate">{g.title}</span>
-                    <span className="tabular weight-medium">{g.progress}%</span>
-                  </span>
-                  <ProgressBar value={g.progress} color={g.color} size="sm" label={`${g.title} progress`} />
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <EmptyState compact icon={Target} title="No goals yet" action={<Link to="/goals" className="text-accent text-sm">Set a goal</Link>} />
-          )}
-        </Card>
-      </div>
-
-      <div className="grid-2" style={{ marginBottom: 16 }}>
-        <ChartCard
-          title="Cash flow"
-          subtitle="Last 6 months"
-          legend={<ChartLegend items={[{ label: 'Income', color: theme.chart1 }, { label: 'Expenses', color: theme.chart2 }]} />}
-          table={{
-            columns: [
-              { key: 'label', label: 'Month' },
-              { key: 'income', label: 'Income', numeric: true, format: (v) => money(v) },
-              { key: 'expense', label: 'Expenses', numeric: true, format: (v) => money(v) },
-            ],
-            rows: trend,
-          }}
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={trend} barGap={2} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
-              <CartesianGrid vertical={false} stroke={theme.chartGrid} />
-              <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: theme.chartBaseline }} tick={theme.axisTick} />
-              <YAxis tickLine={false} axisLine={false} tick={theme.axisTick} width={56} tickFormatter={(v) => money(v, { compact: true })} />
-              <Tooltip cursor={theme.cursorFill} content={<ChartTooltip valueFormatter={(v) => money(v)} />} />
-              <Bar dataKey="income" name="Income" fill={theme.chart1} {...BAR_PROPS} />
-              <Bar dataKey="expense" name="Expenses" fill={theme.chart2} {...BAR_PROPS} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <Card title="Spending by category" subtitle={`Last ${days} days · ${money(d.finance.expense)} total`}>
-          {d.finance.byCategory.length ? (
-            <RankList items={d.finance.byCategory.map((c) => ({ key: c.category, label: c.category, value: c.total }))} formatValue={(v) => money(v)} />
-          ) : (
-            <EmptyState compact icon={PiggyBank} title="No expenses in this period" />
-          )}
-        </Card>
-      </div>
-
-      <div className="grid-2">
-        <ChartCard
-          title="Sleep"
-          subtitle="Hours per night"
-          table={{ columns: [{ key: 'label', label: 'Day' }, { key: 'sleepHours', label: 'Hours', numeric: true }], rows: daily }}
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={daily} margin={{ top: 12, right: 4, bottom: 0, left: -12 }}>
-              <CartesianGrid vertical={false} stroke={theme.chartGrid} />
-              <XAxis {...axis.x} />
-              <YAxis {...axis.y} domain={[0, 10]} tickFormatter={(v) => `${v}h`} />
-              <Tooltip cursor={theme.cursorFill} content={<ChartTooltip labelFormatter={dayLabel} valueFormatter={(v) => `${v}h`} />} />
-              <ReferenceLine y={d.health.goals.sleepGoalHours} stroke={theme.textSecondary} strokeWidth={1} label={{ value: 'Goal', position: 'insideTopRight', fill: theme.chartAxis, fontSize: 11 }} />
-              <Bar dataKey="sleepHours" name="Sleep" fill={theme.chart1} {...BAR_PROPS} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
 
         <ChartCard
           title="Workout minutes"

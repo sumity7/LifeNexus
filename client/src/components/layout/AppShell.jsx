@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useState } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import {
   Bell, CalendarDays, CalendarPlus, CheckSquare, Dumbbell, FileText, Flame, FolderKanban, LayoutDashboard, LogOut, Menu as MenuIcon, Moon,
@@ -15,7 +15,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useEditor } from '../../context/EditorContext';
 import { useHotkey, useScrolled } from '../../hooks/useUtils';
-import { ALL_NAV_ITEMS, NAV_SECTIONS, SETTINGS_NAV } from '../../lib/constants';
+import { ALL_NAV_ITEMS, ASSISTANT_NAV, NAV_ITEMS, SETTINGS_NAV, isNavActive, navGroupFor } from '../../lib/constants';
 import { initials } from '../../lib/format';
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
@@ -83,6 +83,7 @@ export function AppShell() {
       {mobileOpen && <div className="sidebar-backdrop" onClick={() => setMobileOpen(false)} aria-hidden="true" />}
       <div className="main">
         <Topbar onMenu={() => setMobileOpen(true)} onSearch={() => setPaletteOpen(true)} />
+        <SectionTabs className="section-strip mobile-only" />
         <main id="main" tabIndex={-1} style={{ outline: 'none' }}>
           <ErrorBoundary key={location.pathname}>
             <Suspense fallback={<div className="fullscreen-center" style={{ minHeight: '60vh' }}><Spinner size="lg" /></div>}>
@@ -100,8 +101,29 @@ export function AppShell() {
 
 export const openQuickCapture = () => window.dispatchEvent(new Event('lifeos:capture'));
 
+/** Tabs for the pages grouped under the current sidebar item (nothing for a single-page item). */
+function SectionTabs({ className }) {
+  const { pathname } = useLocation();
+  const tabs = navGroupFor(pathname)?.tabs;
+  if (!tabs) return null;
+  return (
+    <nav className={className} aria-label="Section pages">
+      <div className="segmented">
+        {tabs.map((tab) => (
+          <Link key={tab.to} to={tab.to} className="segmented__item" aria-current={isNavActive(tab, pathname) ? 'page' : undefined}>
+            <tab.icon aria-hidden="true" />
+            {tab.label}
+          </Link>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
 function Sidebar({ collapsed, onToggleCollapse, open, onClose, onSearch }) {
   const { user, logout } = useAuth();
+  const { pathname } = useLocation();
+  const activeGroup = navGroupFor(pathname);
   const { resolvedTheme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
@@ -133,17 +155,20 @@ function Sidebar({ collapsed, onToggleCollapse, open, onClose, onSearch }) {
       </button>
 
       <nav className="sidebar__nav">
-        {NAV_SECTIONS.map((section) => (
-          <div key={section.label} className="nav-section">
-            <div className="nav-section__label">{section.label}</div>
-            {section.items.map((item) => (
-              <NavLink key={item.to} to={item.to} end={item.end} className="nav-link" title={collapsed ? item.label : undefined}>
-                <item.icon aria-hidden="true" />
-                <span className="nav-label">{item.label}</span>
-              </NavLink>
-            ))}
-          </div>
-        ))}
+        <div className="nav-section">
+          {NAV_ITEMS.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={clsx('nav-link', item === activeGroup && 'active')}
+              aria-current={item === activeGroup ? (item.tabs ? 'true' : 'page') : undefined}
+              title={collapsed ? item.label : undefined}
+            >
+              <item.icon aria-hidden="true" />
+              <span className="nav-label">{item.label}</span>
+            </Link>
+          ))}
+        </div>
       </nav>
 
       <div className="sidebar__footer">
@@ -184,19 +209,31 @@ function Topbar({ onMenu, onSearch }) {
   const { resolvedTheme, toggleTheme } = useTheme();
 
   const current =
-    ALL_NAV_ITEMS.find((item) => (item.end ? location.pathname === item.to : location.pathname.startsWith(item.to) && item.to !== '/')) ??
-    (location.pathname === '/search' ? { label: 'Search', icon: Search } : location.pathname.startsWith('/ai') ? { label: 'Assistant', icon: Sparkles } : ALL_NAV_ITEMS[0]);
+    ALL_NAV_ITEMS.find((item) => isNavActive(item, location.pathname)) ??
+    (location.pathname === '/search' ? { label: 'Search', icon: Search } : ALL_NAV_ITEMS[0]);
   const CurrentIcon = current.icon;
+  const grouped = !!navGroupFor(location.pathname)?.tabs;
 
   return (
     <header className={clsx('topbar', scrolled && 'is-scrolled')}>
       <IconButton className="topbar__menu" icon={MenuIcon} label="Open navigation" onClick={onMenu} />
-      <div className="topbar__crumb">
+      <SectionTabs className="desktop-only" />
+      <div className={clsx('topbar__crumb', grouped && 'mobile-only')}>
         <CurrentIcon aria-hidden="true" />
         <strong>{current.label}</strong>
       </div>
       <div className="topbar__spacer" />
       <FocusPill />
+      <Button
+        className="desktop-only"
+        size="sm"
+        variant="ghost"
+        icon={ASSISTANT_NAV.icon}
+        aria-current={isNavActive(ASSISTANT_NAV, location.pathname) ? 'page' : undefined}
+        onClick={() => navigate(ASSISTANT_NAV.to)}
+      >
+        {ASSISTANT_NAV.label}
+      </Button>
       <IconButton className="mobile-only" icon={Search} label="Search" onClick={onSearch} />
       <IconButton icon={Zap} label={`Quick capture (${MOD_KEY}+J)`} onClick={openQuickCapture} />
       <NotificationsButton />

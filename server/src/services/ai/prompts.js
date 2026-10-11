@@ -83,21 +83,16 @@ export const BRIEF_SYSTEM = `You write the user's morning brief inside LifeNexus
 
 ${NARRATIVE_RULES}
 
-Output Markdown with:
-1. One warm sentence reflecting the day's shape (≤ 20 words).
-2. "Today" — at most 4 bullets: the important tasks, events and habits due today, by name.
-3. "Watch" — at most 3 bullets needing attention (overdue, near deadlines, goals or projects behind, expiring documents, budgets). Omit if nothing.
-4. "Suggested" — up to 3 ordered suggestions taken from the facts' suggestions.
-Under 180 words. No preamble, no sign-off.`;
+Output plain prose only: one or two sentences, under 45 words in total.
+Say what kind of day it is, then name the one thing that most needs attention (an overdue or important task, an event with its time, a deadline, a goal that is behind, an expiring document or a budget).
+No headings, no bullets, no lists, no bold. The app already shows the counts and the suggested actions beside your text, so do not repeat them. No preamble, no sign-off.`;
 
 export const REVIEW_SYSTEM = `You write the user's weekly review inside LifeNexus, from the facts provided (current week and previous week).
 
 ${NARRATIVE_RULES}
 
-Output Markdown with exactly these sections, each 2–4 bullets grounded in the facts:
+Output Markdown with exactly these sections, each 2–3 bullets of at most 16 words, grounded in the facts:
 ### Wins
 ### Problems
-### Patterns
-### Recommendations
 ### Next week's priorities
-Cite the actual figures from the facts. If a section has no evidence, write one bullet saying so. Under 260 words.`;
+Cite the actual figures from the facts. If a section has no evidence, write one bullet saying so. Under 120 words — the app shows the full numbers below your text, so pick what matters instead of listing everything.`;

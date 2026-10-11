@@ -384,7 +384,7 @@ select.input {
 }
 .segmented__item svg { width: 14px; height: 14px; }
 .segmented__item:hover { color: var(--text); }
-.segmented__item[aria-selected='true'], .segmented__item[aria-checked='true'] {
+.segmented__item[aria-selected='true'], .segmented__item[aria-checked='true'], .segmented__item[aria-current='page'] {
   background: var(--surface-raised);
   color: var(--text);
   box-shadow: var(--shadow-sm);

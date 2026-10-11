@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Bell, Database, Download, KeyRound, LaptopMinimal, LayoutDashboard, LogOut, Monitor, Moon, Palette, ShieldCheck, SlidersHorizontal, Sparkles, Sun, Trash2, User } from 'lucide-react';
 import {
-  Badge, Button, Card, EmptyState, Field, FormError, Input, Kbd, Modal, PageHeader, Segmented, Select, SkeletonList, Switch,
+  Badge, Button, Card, EmptyState, Field, FormError, Input, Kbd, Modal, PageHeader, Segmented, Select, SkeletonList, Switch, Tabs,
 } from '../../components/ui';
 import { useAIStatus, useDeleteConversation, useRevokeOtherSessions, useRevokeSession, useSessions } from '../../api/hooks';
 import { fetchFile } from '../../api/client';
@@ -19,25 +19,35 @@ import { api } from '../../api/client';
 
 const ACCENT_HEX = { indigo: '#4f46e5', blue: '#2563eb', teal: '#0f766e', green: '#15803d', orange: '#c2410c', rose: '#e11d48', violet: '#7c3aed' };
 
+const SETTINGS_TABS = [
+  { value: 'profile', label: 'Profile', icon: User },
+  { value: 'preferences', label: 'Preferences', icon: SlidersHorizontal },
+  { value: 'ai', label: 'AI', icon: Sparkles },
+  { value: 'security', label: 'Security', icon: ShieldCheck },
+];
+// Older links point at a section of the former single page (e.g. /settings#ai).
+const HASH_TAB = { '#ai': 'ai', '#sessions': 'security' };
+
 export default function SettingsPage() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const requested = params.get('tab') ?? HASH_TAB[location.hash];
+  const tab = SETTINGS_TABS.some((t) => t.value === requested) ? requested : 'profile';
+
   useEffect(() => {
-    if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [location.hash]);
+    window.scrollTo(0, 0);
+  }, [tab]);
+
   return (
     <div className="page" style={{ maxWidth: 820 }}>
-      <PageHeader title="Settings" subtitle="Manage your profile, preferences, notifications, AI access, security and data." />
-      <div className="stack" style={{ gap: 16 }}>
-        <ProfileCard />
-        <AppearanceCard />
-        <PreferencesCard />
-        <NotificationsCard />
-        <div id="ai"><AICard /></div>
-        <SecurityCard />
-        <div id="sessions"><SessionsCard /></div>
-        <ShortcutsCard />
-        <DataCard />
-        <DangerCard />
+      <PageHeader title="Settings" />
+      <Tabs label="Settings sections" options={SETTINGS_TABS} value={tab} onChange={(value) => navigate({ search: `?tab=${value}` }, { replace: true })} className="mb" />
+      <div className="stack" style={{ gap: 16 }} role="tabpanel">
+        {tab === 'profile' && <><ProfileCard /><AppearanceCard /></>}
+        {tab === 'preferences' && <><PreferencesCard /><NotificationsCard /><ShortcutsCard /></>}
+        {tab === 'ai' && <AICard />}
+        {tab === 'security' && <><SecurityCard /><SessionsCard /><DataCard /><DangerCard /></>}
       </div>
     </div>
   );

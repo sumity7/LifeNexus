@@ -10,12 +10,16 @@ import { formatKey, toKey } from '../../lib/dates';
 import { formatCurrency, formatDuration } from '../../lib/format';
 import { AI_WITHHELD_REASON } from '../../lib/constants';
 
-function Delta({ current, previous, suffix = '', upIsGood = true }) {
+const ACTIVITY_PREVIEW = 6;
+
+/** Change against last week. `format` renders the size of the change (e.g. as money). */
+function Delta({ current, previous, suffix = '', upIsGood = true, format: formatDiff }) {
   if (current === null || previous === null || previous === undefined || current === undefined) return null;
   const diff = Math.round((current - previous) * 10) / 10;
   if (!diff) return <span className="delta muted">= last week</span>;
   const good = diff > 0 === upIsGood;
-  return <span className={`delta ${good ? 'text-success' : 'text-danger'}`}>{diff > 0 ? '+' : ''}{diff}{suffix} vs last week</span>;
+  const text = formatDiff ? `${diff > 0 ? '+' : '−'}${formatDiff(Math.abs(diff))}` : `${diff > 0 ? '+' : ''}${diff}${suffix}`;
+  return <span className={`delta ${good ? 'text-success' : 'text-danger'}`}>{text} vs last week</span>;
 }
 
 export default function ReviewPage() {
@@ -27,6 +31,7 @@ export default function ReviewPage() {
   const review = useWeeklyReview(week);
   const refresh = useRefreshInsight();
   const toast = useToast();
+  const [allActivity, setAllActivity] = useState(false);
   const d = review.data;
   const m = d?.metrics;
   const isCurrent = toKey(startOfWeek(new Date(), { weekStartsOn })) === week;
@@ -52,7 +57,7 @@ export default function ReviewPage() {
           <Card
             title="AI reflection"
             icon={Sparkles}
-            subtitle={d.ai.configured ? (d.ai.enabled ? 'Wins, problems, patterns and priorities — grounded in the numbers below' : 'AI is turned off in settings') : 'Configure an AI provider to generate the narrative'}
+            subtitle={d.ai.configured ? (d.ai.enabled ? 'Wins, problems and priorities — grounded in the numbers below' : 'AI is turned off in settings') : 'Configure an AI provider to generate the narrative'}
             actions={d.ai.enabled && <Button size="sm" variant="ghost" icon={RefreshCw} loading={refresh.isPending} onClick={() => refresh.mutate({ kind: 'review', week }, { onError: (err) => toast.apiError(err, "Couldn't regenerate") })}>Regenerate</Button>}
           >
             {d.narrative ? <Markdown>{d.narrative}</Markdown> : d.narrativeWithheld ? (
@@ -102,22 +107,27 @@ export default function ReviewPage() {
             <Card className="review-block">
               <p className="review-block__title"><PiggyBank aria-hidden="true" /> Finance</p>
               <div className="review-kv"><span>Income</span><strong>{formatCurrency(m.finance.income, currency)}</strong></div>
-              <div className="review-kv"><span>Expenses</span><strong>{formatCurrency(m.finance.expense, currency)}<Delta current={m.finance.expense} previous={m.previous.finance.expense} upIsGood={false} /></strong></div>
+              <div className="review-kv"><span>Expenses</span><strong>{formatCurrency(m.finance.expense, currency)}<Delta current={m.finance.expense} previous={m.previous.finance.expense} upIsGood={false} format={(v) => formatCurrency(v, currency)} /></strong></div>
               <div className="review-kv"><span>Net</span><strong className={m.finance.net < 0 ? 'text-danger' : ''}>{formatCurrency(m.finance.net, currency, { signed: true })}</strong></div>
               {m.finance.topCategories.slice(0, 3).map((c) => <div key={c.category} className="review-kv text-xs"><span className="muted">{c.category}</span><span className="muted">{formatCurrency(c.total, currency)}</span></div>)}
             </Card>
             <Card className="review-block">
               <p className="review-block__title"><BookHeart aria-hidden="true" /> Journal</p>
               <div className="review-kv"><span>Entries</span><strong>{m.journal.entries}</strong></div>
-              {m.journal.wins.length > 0 && <p className="text-xs" style={{ marginTop: 6 }}><strong>Wins:</strong> {m.journal.wins.slice(0, 4).join(' · ')}</p>}
-              {m.journal.challenges.length > 0 && <p className="text-xs" style={{ marginTop: 4 }}><strong>Challenges:</strong> {m.journal.challenges.slice(0, 3).join(' · ')}</p>}
+              {m.journal.wins.length > 0 && <p className="text-xs" style={{ marginTop: 6 }}><strong>Wins:</strong> {[...new Set(m.journal.wins)].slice(0, 4).join(' · ')}</p>}
+              {m.journal.challenges.length > 0 && <p className="text-xs" style={{ marginTop: 4 }}><strong>Challenges:</strong> {[...new Set(m.journal.challenges)].slice(0, 3).join(' · ')}</p>}
               {!m.journal.entries && <p className="text-sm muted">No entries this week.</p>}
             </Card>
           </div>
 
-          <Card title="Activity" subtitle="What happened this week" flush>
+          <Card
+            title="Activity"
+            subtitle="What happened this week"
+            flush
+            actions={d.activity.length > ACTIVITY_PREVIEW && <Button size="sm" variant="ghost" onClick={() => setAllActivity((v) => !v)}>{allActivity ? 'Show less' : `Show all ${Math.min(d.activity.length, 20)}`}</Button>}
+          >
             {d.activity.length ? (
-              <div className="list">{d.activity.slice(0, 20).map((a) => (
+              <div className="list">{d.activity.slice(0, allActivity ? 20 : ACTIVITY_PREVIEW).map((a) => (
                 <div key={a._id} className="list-row" style={{ minHeight: 34 }}>
                   <span className="text-xs muted tabular" style={{ width: 52 }}>{formatKey(a.date, 'EEE d')}</span>
                   <span className="text-xs muted" style={{ width: 130 }}>{a.type.replace(/_/g, ' ')}</span>

@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import { ACCENTS, AI_SCOPES, CURRENCIES, DASHBOARD_WIDGETS, NOTIFICATION_PREFS, THEMES } from '../constants.js';
+import { ACCENTS, AI_SCOPES, CURRENCIES, DASHBOARD_DEFAULT_WIDGETS, DASHBOARD_WIDGETS, NOTIFICATION_PREFS, THEMES } from '../constants.js';
 
 const BCRYPT_ROUNDS = process.env.NODE_ENV === 'test' ? 4 : 12;
 
@@ -33,7 +33,7 @@ const userSchema = new mongoose.Schema(
       breakMinutes: { type: Number, min: 1, max: 60, default: 5 },
       dashboardWidgets: {
         type: [widgetSchema],
-        default: () => DASHBOARD_WIDGETS.map((id) => ({ id, visible: true })),
+        default: () => DASHBOARD_WIDGETS.map((id) => ({ id, visible: DASHBOARD_DEFAULT_WIDGETS.includes(id) })),
       },
       notifications: { type: boolMap(NOTIFICATION_PREFS), default: () => ({}) },
       ai: {

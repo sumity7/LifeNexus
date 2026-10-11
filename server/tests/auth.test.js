@@ -125,6 +125,13 @@ describe('auth', () => {
     assert.ok(a.body.data.accessToken && b.body.data.accessToken);
   });
 
+  it('starts a new account with a short dashboard — the other widgets are opt-in', async () => {
+    const u = await createUser(ctx.app);
+    const widgets = u.user.preferences.dashboardWidgets;
+    assert.equal(widgets.length, 13, 'every widget is listed so it can be switched on');
+    assert.deepEqual(widgets.filter((w) => w.visible).map((w) => w.id), ['brief', 'focus', 'schedule', 'habits', 'goals']);
+  });
+
   it('updates profile and preferences', async () => {
     const u = await createUser(ctx.app);
     const res = await u.patch('/api/auth/me').send({

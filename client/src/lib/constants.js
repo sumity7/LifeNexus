@@ -3,48 +3,43 @@ import {
   NotebookPen, Repeat, Settings, Sparkles, Target, Timer, Wallet,
 } from 'lucide-react';
 
-export const NAV_SECTIONS = [
-  {
-    label: 'Overview',
-    items: [
-      { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true, shortcut: 'G D' },
-      { to: '/ai', label: 'Assistant', icon: Sparkles, shortcut: 'G A' },
-      { to: '/analytics', label: 'Analytics', icon: BarChart3 },
-      { to: '/review', label: 'Weekly review', icon: ClipboardCheck },
-    ],
-  },
-  {
-    label: 'Plan',
-    items: [
-      { to: '/tasks', label: 'Tasks', icon: CheckSquare, shortcut: 'G T' },
-      { to: '/calendar', label: 'Calendar', icon: CalendarDays, shortcut: 'G C' },
-      { to: '/goals', label: 'Goals', icon: Target },
-      { to: '/projects', label: 'Projects', icon: FolderKanban },
-      { to: '/reminders', label: 'Reminders', icon: Bell },
-    ],
-  },
-  {
-    label: 'Grow',
-    items: [
-      { to: '/habits', label: 'Habits', icon: Flame, shortcut: 'G H' },
-      { to: '/routines', label: 'Routines', icon: Repeat },
-      { to: '/focus', label: 'Focus', icon: Timer, shortcut: 'G F' },
-      { to: '/health', label: 'Health', icon: Activity },
-    ],
-  },
-  {
-    label: 'Knowledge',
-    items: [
-      { to: '/notes', label: 'Notes', icon: NotebookPen, shortcut: 'G N' },
-      { to: '/journal', label: 'Journal', icon: BookHeart, shortcut: 'G J' },
-      { to: '/documents', label: 'Documents', icon: FileText },
-    ],
-  },
-  {
-    label: 'Manage',
-    items: [{ to: '/finance', label: 'Finance', icon: Wallet }],
-  },
+const PAGES = {
+  dashboard: { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true, shortcut: 'G D' },
+  tasks: { to: '/tasks', label: 'Tasks', icon: CheckSquare, shortcut: 'G T' },
+  focus: { to: '/focus', label: 'Focus', icon: Timer, shortcut: 'G F' },
+  calendar: { to: '/calendar', label: 'Calendar', icon: CalendarDays, shortcut: 'G C' },
+  reminders: { to: '/reminders', label: 'Reminders', icon: Bell },
+  habits: { to: '/habits', label: 'Habits', icon: Flame, shortcut: 'G H' },
+  routines: { to: '/routines', label: 'Routines', icon: Repeat },
+  health: { to: '/health', label: 'Health', icon: Activity },
+  goals: { to: '/goals', label: 'Goals', icon: Target },
+  projects: { to: '/projects', label: 'Projects', icon: FolderKanban },
+  notes: { to: '/notes', label: 'Notes', icon: NotebookPen, shortcut: 'G N' },
+  journal: { to: '/journal', label: 'Journal', icon: BookHeart, shortcut: 'G J' },
+  documents: { to: '/documents', label: 'Documents', icon: FileText },
+  finance: { to: '/finance', label: 'Finance', icon: Wallet },
+  review: { to: '/review', label: 'Weekly review', icon: ClipboardCheck },
+  analytics: { to: '/analytics', label: 'Analytics', icon: BarChart3 },
+};
+
+/**
+ * Sidebar destinations. An item with `tabs` is a group of related pages: the sidebar shows one
+ * link for it, and the pages inside are switched with tabs at the top of the screen.
+ */
+export const NAV_ITEMS = [
+  PAGES.dashboard,
+  { ...PAGES.tasks, tabs: [PAGES.tasks, PAGES.focus] },
+  { ...PAGES.calendar, tabs: [PAGES.calendar, PAGES.reminders] },
+  { ...PAGES.habits, tabs: [PAGES.habits, PAGES.routines, PAGES.health] },
+  { ...PAGES.goals, tabs: [PAGES.goals, PAGES.projects] },
+  { ...PAGES.notes, tabs: [PAGES.notes, PAGES.journal, PAGES.documents] },
+  PAGES.finance,
+  { ...PAGES.review, label: 'Review', tabs: [PAGES.review, PAGES.analytics] },
 ];
+export const ASSISTANT_NAV = { to: '/ai', label: 'Assistant', icon: Sparkles, shortcut: 'G A' };
+
+export const isNavActive = (item, pathname) => (item.end ? pathname === item.to : pathname === item.to || pathname.startsWith(`${item.to}/`));
+export const navGroupFor = (pathname) => NAV_ITEMS.find((item) => (item.tabs ?? [item]).some((page) => isNavActive(page, pathname)));
 
 export const PROJECT_STATUSES = [
   { value: 'active', label: 'Active' },
@@ -131,7 +126,8 @@ export const ENTITY_LABELS = {
 };
 
 export const SETTINGS_NAV = { to: '/settings', label: 'Settings', icon: Settings };
-export const ALL_NAV_ITEMS = [...NAV_SECTIONS.flatMap((s) => s.items), SETTINGS_NAV];
+/** Every page, flat — for the command palette and the top-bar title. */
+export const ALL_NAV_ITEMS = [...Object.values(PAGES), ASSISTANT_NAV, SETTINGS_NAV];
 
 export const COLORS = ['slate', 'red', 'orange', 'amber', 'green', 'teal', 'blue', 'indigo', 'violet', 'pink'];
 export const ACCENTS = ['indigo', 'blue', 'teal', 'green', 'orange', 'rose', 'violet'];
@@ -221,15 +217,17 @@ export const ROUTINE_TYPES = [
 
 export const HABIT_ICONS = ['✨', '🧘', '📚', '🏃', '💧', '📵', '🎸', '🥗', '😴', '✍️', '🧠', '💪', '🌱', '🙏', '🎨', '💻', '🚭', '☀️'];
 
+// `default: true` widgets are the ones a new account starts with (keep in sync with
+// DASHBOARD_DEFAULT_WIDGETS on the server); the rest are one switch away in Customize.
 export const DASHBOARD_WIDGETS = {
-  brief: { label: 'Daily brief', description: 'Your day at a glance, with AI narrative when configured', section: 'today' },
-  focus: { label: 'Focus', description: 'Overdue, today and priority tasks', section: 'today' },
-  schedule: { label: "Today's schedule", description: 'Events happening today', section: 'today' },
-  habits: { label: 'Habits', description: "Today's habit check-ins", section: 'today' },
+  brief: { label: 'Daily brief', description: 'Your day at a glance, with AI narrative when configured', section: 'today', default: true },
+  focus: { label: 'Focus', description: 'Overdue, today and priority tasks', section: 'today', default: true },
+  schedule: { label: "Today's schedule", description: 'Events happening today', section: 'today', default: true },
+  habits: { label: 'Habits', description: "Today's habit check-ins", section: 'today', default: true },
   routines: { label: 'Routines', description: "Today's routine progress", section: 'today' },
   upcoming: { label: 'Upcoming', description: 'Events and tasks in the next 7 days', section: 'upcoming' },
   reminders: { label: 'Reminders', description: 'Important dates, bills and renewals', section: 'upcoming' },
-  goals: { label: 'Goals', description: 'Progress on active goals', section: 'progress' },
+  goals: { label: 'Goals', description: 'Progress on active goals', section: 'progress', default: true },
   finance: { label: 'Finance', description: "This month's cash flow and budgets", section: 'progress' },
   health: { label: 'Wellness', description: 'Water, sleep, mood and workouts', section: 'progress' },
   productivity: { label: 'This week', description: 'Tasks completed and habit consistency', section: 'progress' },

@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { ChevronDown, X } from 'lucide-react';
 import { FormModal } from '../../components/FormModal';
-import { Checkbox, Field, FormError, IconButton, Input, Select, TagInput, Textarea } from '../../components/ui';
+import { Button, Checkbox, Field, FormError, IconButton, Input, Select, TagInput, Textarea } from '../../components/ui';
 import { useCreateTask, useDeleteTask, useGoals, useProjects, useUpdateTask } from '../../api/hooks';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../../context/ConfirmContext';
@@ -42,6 +42,11 @@ function TaskForm({ onClose, item: task, defaults = {}, onSaved }) {
     subtasks: (task?.subtasks ?? []).map((s) => ({ ...s, key: s._id })),
   }));
   const { values, set, errors } = form;
+  // Open from the start when there is already something to see in the extra fields.
+  const [more, setMore] = useState(
+    () => values.freq !== 'none' || values.subtasks.length > 0 || values.tags.length > 0 || !!(values.goal || values.project || values.notes),
+  );
+  const showMore = more || !!(errors.recurrence || errors.notes);
 
   const goalOptions = [...(goals.data ?? [])];
   if (task?.goal && typeof task.goal === 'object' && !goalOptions.some((g) => g._id === task.goal._id)) goalOptions.push(task.goal);
@@ -134,78 +139,90 @@ function TaskForm({ onClose, item: task, defaults = {}, onSaved }) {
         )}
       </div>
 
-      <div className="form-row">
-        <Field label="Repeat">
-          <Select {...form.bind('freq')} options={RECURRENCE_OPTIONS} />
-        </Field>
-        {values.freq !== 'none' && (
-          <Field label={`Every (${unit}s)`} error={errors.recurrence}>
-            <Input type="number" min={1} max={365} {...form.bind('interval')} />
-          </Field>
-        )}
-      </div>
-
-      <Field label="Subtasks" optional>
-        <div className="subtasks-editor">
-          {values.subtasks.map((s, i) => (
-            <div key={s.key ?? s._id} className="subtasks-editor__row">
-              <Checkbox square checked={s.done} onChange={(done) => updateSubtask(i, { done })} label={`Mark "${s.title}" done`} />
-              <input
-                className="subtasks-editor__input"
-                value={s.title}
-                aria-label={`Subtask ${i + 1}`}
-                maxLength={200}
-                onChange={(e) => updateSubtask(i, { title: e.target.value })}
-              />
-              <IconButton icon={X} label="Remove subtask" size="xs" onClick={() => removeSubtask(i)} />
-            </div>
-          ))}
-          <input
-            className="subtasks-editor__input subtasks-editor__new"
-            placeholder="+ Add a subtask and press Enter"
-            value={subtaskDraft}
-            maxLength={200}
-            aria-label="New subtask"
-            onChange={(e) => setSubtaskDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.metaKey && !e.ctrlKey) {
-                e.preventDefault();
-                addSubtask();
-              }
-            }}
-          />
+      {!showMore && (
+        <div>
+          <Button variant="ghost" size="sm" icon={ChevronDown} aria-expanded={false} onClick={() => setMore(true)}>
+            More options
+          </Button>
         </div>
-      </Field>
+      )}
 
-      <div className="form-row">
-        <Field label="Goal" optional>
-          <Select
-            value={values.goal}
-            onChange={(e) => {
-              set('goal', e.target.value);
-              set('milestone', '');
-            }}
-            placeholder="No goal"
-            options={goalOptions.map((g) => ({ value: g._id, label: g.title }))}
-          />
-        </Field>
-        {milestones.length > 0 && (
-          <Field label="Milestone" optional>
-            <Select {...form.bind('milestone')} placeholder="No milestone" options={milestones.map((m) => ({ value: m._id, label: m.title }))} />
+      {showMore && (
+        <>
+          <div className="form-row">
+            <Field label="Repeat">
+              <Select {...form.bind('freq')} options={RECURRENCE_OPTIONS} />
+            </Field>
+            {values.freq !== 'none' && (
+              <Field label={`Every (${unit}s)`} error={errors.recurrence}>
+                <Input type="number" min={1} max={365} {...form.bind('interval')} />
+              </Field>
+            )}
+          </div>
+
+          <Field label="Subtasks" optional>
+            <div className="subtasks-editor">
+              {values.subtasks.map((s, i) => (
+                <div key={s.key ?? s._id} className="subtasks-editor__row">
+                  <Checkbox square checked={s.done} onChange={(done) => updateSubtask(i, { done })} label={`Mark "${s.title}" done`} />
+                  <input
+                    className="subtasks-editor__input"
+                    value={s.title}
+                    aria-label={`Subtask ${i + 1}`}
+                    maxLength={200}
+                    onChange={(e) => updateSubtask(i, { title: e.target.value })}
+                  />
+                  <IconButton icon={X} label="Remove subtask" size="xs" onClick={() => removeSubtask(i)} />
+                </div>
+              ))}
+              <input
+                className="subtasks-editor__input subtasks-editor__new"
+                placeholder="+ Add a subtask and press Enter"
+                value={subtaskDraft}
+                maxLength={200}
+                aria-label="New subtask"
+                onChange={(e) => setSubtaskDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.metaKey && !e.ctrlKey) {
+                    e.preventDefault();
+                    addSubtask();
+                  }
+                }}
+              />
+            </div>
           </Field>
-        )}
-        <Field label="Project" optional>
-          <Select {...form.bind('project')} placeholder="No project" options={(projects.data ?? []).map((p) => ({ value: p._id, label: p.title }))} />
-        </Field>
-      </div>
 
-      <Field label="Tags" optional>
-        <TagInput value={values.tags} onChange={(tags) => set('tags', tags)} />
-      </Field>
+          <div className="form-row">
+            <Field label="Goal" optional>
+              <Select
+                value={values.goal}
+                onChange={(e) => {
+                  set('goal', e.target.value);
+                  set('milestone', '');
+                }}
+                placeholder="No goal"
+                options={goalOptions.map((g) => ({ value: g._id, label: g.title }))}
+              />
+            </Field>
+            {milestones.length > 0 && (
+              <Field label="Milestone" optional>
+                <Select {...form.bind('milestone')} placeholder="No milestone" options={milestones.map((m) => ({ value: m._id, label: m.title }))} />
+              </Field>
+            )}
+            <Field label="Project" optional>
+              <Select {...form.bind('project')} placeholder="No project" options={(projects.data ?? []).map((p) => ({ value: p._id, label: p.title }))} />
+            </Field>
+          </div>
 
-      <Field label="Notes" optional error={errors.notes}>
-        <Textarea {...form.bind('notes')} rows={3} maxLength={5000} placeholder="Add details, links or context…" />
-      </Field>
+          <Field label="Tags" optional>
+            <TagInput value={values.tags} onChange={(tags) => set('tags', tags)} />
+          </Field>
+
+          <Field label="Notes" optional error={errors.notes}>
+            <Textarea {...form.bind('notes')} rows={3} maxLength={5000} placeholder="Add details, links or context…" />
+          </Field>
+        </>
+      )}
     </FormModal>
   );
 }
