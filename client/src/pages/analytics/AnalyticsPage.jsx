@@ -197,7 +197,7 @@ export default function AnalyticsPage() {
       </div>
 
       <style>{`
-        .insights { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px 24px; list-style: none; }
+        .insights { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: 12px 24px; list-style: none; }
         .insight { display: flex; gap: 10px; align-items: flex-start; }
         .insight__icon { display: grid; place-items: center; width: 28px; height: 28px; flex-shrink: 0; border-radius: var(--radius-sm); background: var(--bg-subtle); }
         .insight__icon svg { width: 15px; height: 15px; }

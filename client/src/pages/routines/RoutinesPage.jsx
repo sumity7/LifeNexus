@@ -74,7 +74,7 @@ export default function RoutinesPage() {
       </Modal>
 
       <style>{`
-        .routine-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; align-items: start; }
+        .routine-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); gap: 16px; align-items: start; }
         .routine-step { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 36px; padding: 4px 8px; margin: 0 -8px; width: calc(100% + 16px); border: 0; border-radius: var(--radius-sm); background: none; text-align: left; cursor: pointer; font-size: var(--text-sm); }
         .routine-step:hover { background: var(--surface-hover); }
         .routine-step.is-done .routine-step__title { color: var(--text-muted); text-decoration: line-through; text-decoration-color: var(--text-faint); }

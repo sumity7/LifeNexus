@@ -12,6 +12,10 @@
 
 .widget .card__body--flush { padding-top: 4px; }
 .widget-scroll { max-height: 400px; overflow-y: auto; }
+/* A scroll box inside a scrolling page is easy to miss and traps touch scrolling on phones. */
+@media (max-width: 900px) {
+  .widget-scroll { max-height: none; overflow-y: visible; }
+}
 
 .schedule-item {
   display: grid;

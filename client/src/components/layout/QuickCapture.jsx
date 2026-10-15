@@ -147,7 +147,7 @@ function CaptureBody({ onClose }) {
         <input
           ref={inputRef}
           className="cmdk__input"
-          placeholder="Capture anything… e.g. “Call dentist tomorrow 3pm”"
+          placeholder="Capture anything…"
           value={text}
           onChange={(e) => { setText(e.target.value); setOverride(null); }}
           data-autofocus

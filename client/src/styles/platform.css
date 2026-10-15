@@ -67,6 +67,13 @@
 .notif__panel { position: absolute; right: 0; top: calc(100% + 6px); z-index: 60; width: min(380px, calc(100vw - 32px)); overflow: hidden; background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); animation: scale-in 0.14s var(--ease-out); }
 .notif__head { display: flex; align-items: center; justify-content: space-between; padding: 10px 8px 10px 14px; border-bottom: 1px solid var(--divider); font-size: var(--text-sm); }
 .notif__list { max-height: 420px; overflow-y: auto; }
+/* On phones the bell sits mid-bar, so a panel anchored to it hangs off the left edge. Un-anchor
+   .notif so the panel positions against the full-width top bar and spans the screen instead. */
+@media (max-width: 900px) {
+  .notif { position: static; }
+  .notif__panel { left: 12px; right: 12px; width: auto; }
+  .notif__list { max-height: min(420px, calc(100dvh - var(--topbar-h) - 120px)); }
+}
 .notif__item { display: flex; align-items: flex-start; gap: 2px; padding: 4px 6px 4px 0; border-bottom: 1px solid var(--divider); }
 .notif__item:last-child { border-bottom: 0; }
 .notif__item.is-unread { background: var(--accent-soft); }

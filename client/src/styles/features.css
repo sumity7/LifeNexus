@@ -29,6 +29,15 @@
 .task-row__tag { color: var(--text-faint); }
 .task-row__side { display: flex; align-items: center; gap: 8px; flex-shrink: 0; min-height: 20px; }
 .task-row .list-row__actions { margin: -4px -6px -4px 0; }
+/* On phones the flag + due date + menu would take ~150px and squeeze the title to a word per
+   line, so they drop to their own line under it. The menu is pinned to the row's top-right so rows
+   without a flag or date stay compact. */
+@media (max-width: 640px) {
+  .task-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 10px; }
+  .task-row__side { grid-column: 2; flex-wrap: wrap; min-height: 0; margin-top: 2px; }
+  .task-row__main { padding-right: 30px; }
+  .task-row .list-row__actions { position: absolute; top: 4px; right: 8px; margin: 0; }
+}
 
 .due { display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted); font-size: var(--text-xs); white-space: nowrap; }
 .due svg { width: 12px; height: 12px; }
