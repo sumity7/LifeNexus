@@ -71,7 +71,7 @@ export default function DocumentsPage() {
           <div className="toolbar" style={{ marginBottom: 0 }}>
             <Segmented label="View" value={view} onChange={(v) => update({ view: v === 'all' ? null : v })} options={VIEWS.map((v) => (v.value === 'expiring' && meta?.expiring ? { ...v, count: meta.expiring } : v))} />
             <Select className="mobile-only" size="sm" value={category} onChange={(e) => update({ category: e.target.value || null })} placeholder="All categories" options={DOCUMENT_CATEGORIES} aria-label="Category" style={{ width: 150 }} />
-            <div className="input-group" style={{ flex: '1 1 200px', maxWidth: 320 }}><Search aria-hidden="true" /><Input size="sm" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search documents" aria-label="Search documents" /></div>
+            <div className="input-group doc-search"><Search aria-hidden="true" /><Input size="sm" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search documents" aria-label="Search documents" /></div>
           </div>
           {docs.isPending ? (
             <div className="doc-grid">{Array.from({ length: 6 }, (_, i) => <div key={i} className="card doc-card"><Skeleton height={96} /><Skeleton width="70%" /><Skeleton width="40%" /></div>)}</div>

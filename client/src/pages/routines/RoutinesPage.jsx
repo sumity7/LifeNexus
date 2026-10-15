@@ -10,6 +10,7 @@ import { useToast } from '../../context/ToastContext';
 import { WEEKDAYS } from '../../lib/constants';
 import { formatKey, formatTimeHM } from '../../lib/dates';
 import { formatDuration } from '../../lib/format';
+import '../dashboard/dashboard.css';
 
 const TYPE_ICON = { morning: Sun, evening: Moon, custom: Repeat };
 

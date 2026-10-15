@@ -84,3 +84,8 @@
   .doc-card { padding: 12px; }
   .doc-card__thumb { height: 72px; }
 }
+
+.doc-search { flex: 1 1 200px; max-width: 320px; }
+@media (max-width: 640px) {
+  .doc-search { flex-basis: 100%; max-width: none; }
+}

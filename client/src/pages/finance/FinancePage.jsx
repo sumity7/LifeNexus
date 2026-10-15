@@ -20,6 +20,7 @@ import { ACCOUNT_META, BILLING_FREQUENCIES, EXPENSE_CATEGORIES, INCOME_CATEGORIE
 import { countdown, formatKey, fromKey, monthKey, relativeDay } from '../../lib/dates';
 import { formatCurrency } from '../../lib/format';
 import { useNavigate } from 'react-router-dom';
+import '../goals/goals.css';
 
 const TABS = ['overview', 'accounts', 'subscriptions', 'savings', 'recurring'];
 const FREQ_LABEL = Object.fromEntries(BILLING_FREQUENCIES.map((f) => [f.value, f.label]));

@@ -51,7 +51,7 @@ export default function SearchPage() {
         <div className="choice-group" role="group" aria-label="Filter by type">
           {SEARCH_TYPE_OPTIONS.map((t) => <button key={t.value} type="button" className="choice" aria-pressed={types.includes(t.value)} onClick={() => toggleType(t.value)}>{t.label}</button>)}
         </div>
-        <div className="toolbar__spacer" />
+        <div className="toolbar__spacer desktop-only" />
         <Input size="sm" type="date" value={from} onChange={(e) => setFrom(e.target.value)} aria-label="From date" style={{ width: 140 }} />
         <span className="text-xs muted">to</span>
         <Input size="sm" type="date" value={to} onChange={(e) => setTo(e.target.value)} aria-label="To date" style={{ width: 140 }} />

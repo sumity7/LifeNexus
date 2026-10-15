@@ -11,6 +11,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useDebounce } from '../../hooks/useUtils';
 import { addDaysKey, formatKey, fromKey, relativeDay, toKey, todayKey } from '../../lib/dates';
 import { useNavigate } from 'react-router-dom';
+import '../notes/notes.css';
 
 const MOODS = ['😞', '🙁', '😐', '🙂', '😄'];
 const MOOD_LABELS = ['Awful', 'Low', 'Okay', 'Good', 'Great'];

@@ -7,6 +7,7 @@ import { useEditor } from '../../context/EditorContext';
 import { PROJECT_STATUSES } from '../../lib/constants';
 import { countdown, todayKey } from '../../lib/dates';
 import { formatDuration } from '../../lib/format';
+import '../goals/goals.css';
 
 const STATUS_LABEL = Object.fromEntries(PROJECT_STATUSES.map((s) => [s.value, s.label]));
 const TABS = ['active', 'on_hold', 'completed', 'archived', 'all'];

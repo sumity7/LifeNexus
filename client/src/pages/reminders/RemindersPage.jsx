@@ -45,7 +45,7 @@ function ReminderItem({ reminder }) {
           {reminder.notes && <span className="truncate" style={{ maxWidth: 320 }}>{reminder.notes}</span>}
         </div>
       </div>
-      <div className="stack stack--sm" style={{ alignItems: 'flex-end', gap: 2 }}>
+      <div className="stack stack--sm reminder-row__when" style={{ alignItems: 'flex-end', gap: 2 }}>
         <span className="text-sm tabular">{formatKey(reminder.date, 'EEE, MMM d')}{reminder.time && ` · ${formatTimeHM(reminder.time)}`}</span>
         {reminder.completed ? (
           <span className="text-xs muted">Completed</span>
@@ -55,7 +55,7 @@ function ReminderItem({ reminder }) {
           </Badge>
         )}
       </div>
-      <div className="row" style={{ gap: 2 }} onClick={(e) => e.stopPropagation()}>
+      <div className="row reminder-row__actions" style={{ gap: 2 }} onClick={(e) => e.stopPropagation()}>
         {reminder.completed ? (
           <IconButton
             icon={ArchiveRestore}
@@ -174,7 +174,18 @@ export default function RemindersPage() {
           }
         </QueryState>
       </Card>
-      <style>{`.reminder-row.is-done .task-row__title { color: var(--text-muted); }`}</style>
+      <style>{`
+        .reminder-row.is-done .task-row__title { color: var(--text-muted); }
+        /* On phones the date, status and buttons would squeeze the title to a few letters, so the
+           date moves under the title and the buttons stay on the right. */
+        @media (max-width: 640px) {
+          .reminder-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 10px; align-items: start; }
+          .reminder-row > .icon-tile { grid-row: 1 / span 2; }
+          .reminder-row > .grow { grid-column: 2; grid-row: 1; min-width: 0; }
+          .reminder-row__when { grid-column: 2; grid-row: 2; flex-direction: row; flex-wrap: wrap; align-items: center !important; gap: 4px 8px !important; }
+          .reminder-row__actions { grid-column: 3; grid-row: 1 / span 2; align-self: center; }
+        }
+      `}</style>
     </div>
   );
 }

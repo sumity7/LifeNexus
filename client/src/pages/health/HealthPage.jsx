@@ -14,6 +14,7 @@ import { useToast } from '../../context/ToastContext';
 import { INTENSITIES, WORKOUT_META } from '../../lib/constants';
 import { addDaysKey, formatKey, fromKey, relativeDay, todayKey } from '../../lib/dates';
 import { formatDuration, formatLiters, percent } from '../../lib/format';
+import '../dashboard/dashboard.css';
 
 const MOODS = ['😞', '🙁', '😐', '🙂', '😄'];
 const MOOD_LABELS = ['Awful', 'Low', 'Okay', 'Good', 'Great'];

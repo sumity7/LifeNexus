@@ -16,6 +16,7 @@ import { WEEKDAYS } from '../../lib/constants';
 import { addDaysKey, formatKey, fromKey, toKey, todayKey } from '../../lib/dates';
 import { pluralize } from '../../lib/format';
 import './habits.css';
+import '../dashboard/dashboard.css';
 
 const isScheduled = (habit, key) => habit.frequency === 'weekly' || !habit.days.length || habit.days.includes(getDay(fromKey(key)));
 
